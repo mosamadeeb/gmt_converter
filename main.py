@@ -150,7 +150,10 @@ If you want to convert an entire folder of GMTs, add the -d flag (or -dr to conv
                 gmt_file = os.path.join(r, file)
                 #if not gmt_file.startswith('\"'):
                 #    gmt_file = f"\"{gmt_file}\""
-                output_file = gmt_file if args.nosuffix else gmt_file[:-4] + f"-{args.outgame}.gmt"
+                if args.nosuffix:
+                    output_file = os.path.join(args.outpath, file)
+                else:
+                    output_file = os.path.join(args.outpath, file[:-4] + f"-{args.outgame}.gmt")
                 
                 stop = False
                 for g in GAME.keys():
