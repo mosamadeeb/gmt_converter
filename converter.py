@@ -5,6 +5,7 @@ from pyquaternion import Quaternion
 
 from read import read_file
 from write import write_file
+from util.dicts import *
 from util.binary import BinaryReader
 from util.read_cmt import read_cmt_file
 from util.write_cmt import write_cmt_file
@@ -38,105 +39,6 @@ class Translation:
     
     def has_reset(self):
         return self.reset or self.resethact
-
-FLOAT_TO_SCALED = {
-    CurveFormat.ROT_QUAT_HALF_FLOAT: CurveFormat.ROT_QUAT_SCALED,
-    CurveFormat.ROT_XW_HALF_FLOAT: CurveFormat.ROT_XW_SCALED,
-    CurveFormat.ROT_YW_HALF_FLOAT: CurveFormat.ROT_YW_SCALED,
-    CurveFormat.ROT_ZW_HALF_FLOAT: CurveFormat.ROT_ZW_SCALED,
-}
-
-SCALED_TO_FLOAT = dict(map(reversed, FLOAT_TO_SCALED.items()))
-
-def new_face(name, name_new, types):
-    new = {}
-    for t in types:
-        new[f'_{name}_{t}'] = f'_{name_new}_{t}_n'
-    return new
-
-NEW_BONES = {
-    'pattern_n': 'pattern_c_n',
-    'center_n': 'center_c_n',
-    'ketu_n': 'ketu_c_n',
-    'kosi_n': 'kosi_c_n',
-    'mune_n': 'mune_c_n',
-    'kubi_n': 'kubi_c_n',
-    'face': 'face_c_n',
-    #'ude1_r2_n': 'kata_pad_r_sup',
-    #'ude1_l2_n': 'kata_pad_l_sup',
-    #'ude1_r2_n': 'waki_r_sup', # TODO: this isn't correct. they're in the same place but their functions are different
-    # actual ude1_r2_n should be kata_pad_r_sup, but they are in different places
-    #'ude1_l2_n': 'waki_l_sup',
-    'ude3_r2_n': 'ude2_twist_r_sup',
-    'ude3_l2_n': 'ude2_twist_l_sup',
-    'buki_r_n': 'buki1_r_n',
-    'buki_l_n': 'buki1_l_n'
-}
-
-HAND = {
-    'kou_r': 'kou_r_n',
-    'kou_l': 'kou_l_n'
-}
-
-for b in ['naka', 'hito', 'oya', 'koyu', 'kusu']:
-    for i in range(1,4):
-        for d in ['r', 'l']:
-            HAND[f'{b}{i}_{d}'] = f'{b}{i}_{d}_n'
-
-FACE = {
-    '_brow': '_brow_c_n',
-    '_eyebrow_r2': '_eyebrow2_r_n',
-    '_eyebrow_l2': '_eyebrow2_l_n',
-    '_jaw': '_jaw_c_n',
-    '_chin': '_chin_c_n',
-    '_throat': '_throat_c_n'
-}
-
-# TODO: add the rest of the bones, even though they may look bad because they're not in the same place
-FACE.update(new_face('eyebrow', 'eyebrow', ['r', 'l']))
-FACE.update(new_face('temple', 'eyebrow3', ['r', 'l']))
-FACE.update(new_face('eyelid', 'eyelid', ['r', 'l']))
-FACE.update(new_face('eyelid_und', 'eyelid_und', ['r', 'l']))
-FACE.update(new_face('eye', 'eye', ['r', 'l']))
-FACE.update(new_face('nose_side', 'cheek1', ['r', 'l']))
-FACE.update(new_face('cheek', 'cheek3', ['r', 'l']))
-FACE.update(new_face('cheek2', 'cheek2', ['r', 'l']))
-FACE.update(new_face('puff', 'cheek_btm1', ['r', 'l']))
-#FACE.update(new_face('nose_top', 'nose_top', ['c'])) # TODO: should probably remove this
-FACE.update(new_face('nostril', 'nose_side', ['r', 'l']))
-FACE.update(new_face('lip_top', 'lip_top', ['r', 'l', 'c']))
-FACE.update(new_face('lip_top_side', 'lip_side', ['r', 'l']))
-FACE.update(new_face('lip_btm', 'lip_btm', ['r', 'l', 'c']))
-FACE.update(new_face('lip_btm_side', 'lip_side2', ['r', 'l']))
-
-DE_FACE = {
-    '_lip_top_c_n': '_lip_top1_c_n',
-    '_lip_top_r_n': '_lip_top1_r_n',
-    '_lip_top_l_n': '_lip_top1_l_n',
-    '_lip_side_r_n': '_lip_top_side1_r_n',
-    '_lip_side_l_n': '_lip_top_side1_l_n',
-    '_lip_btm_c_n': '_lip_btm1_c_n',
-    '_lip_btm_r_n': '_lip_btm1_r_n',
-    '_lip_btm_l_n': '_lip_btm1_l_n',
-    '_lip_side2_r_n': '_lip_btm_side1_r_n',
-    '_lip_side2_l_n': '_lip_btm_side1_l_n'
-}
-
-NEW_BONES.update(HAND)
-NEW_BONES.update(FACE)
-
-OLD_BONES = dict(map(reversed, NEW_BONES.items()))
-DE_FACE_OLD = dict(map(reversed, DE_FACE.items()))
-
-"""
-PATTERN = [
-    CurveFormat.PAT1_LEFT_HAND,
-    CurveFormat.PAT1_RIGHT_HAND,
-    CurveFormat.PAT1_UNK2,
-    CurveFormat.PAT1_UNK3,
-    CurveFormat.PAT2
-]
-"""
 
 # returns converted file as bytearray
 def convert(path, src_game, dst_game, motion, translation) -> bytearray:
@@ -209,16 +111,18 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
                 anm.bones = new_to_old_bones(anm.bones, src_gmt.is_dragon_engine)
     elif dst_gmt.new_bones:
         # convert old bones to new bones (add _c_n and copy center movement to vector (and sync) accordingly)
-        if not translation.targetgmd:
-            print("Target GMD path is required for hand pattern fixing")
-            if type(path) is bytes:
-                return -1
-            translation.targetgmd = input("Target GMD path: ")
         for anm in in_file.animations:
-            anm.bones = old_to_new_bones(anm.bones, dst_gmt.is_dragon_engine, motion, translation.targetgmd)
-        if not dst_gmt.is_dragon_engine:
-            for anm in in_file.animations:
-                anm.bones = finger_pos(anm.bones, translation.targetgmd)
+            anm.bones = old_to_new_bones(anm.bones, dst_gmt.is_dragon_engine, motion, translation.targetgmd)     
+    
+    if dst_gmt.new_bones and not dst_gmt.is_dragon_engine:
+        if not translation.targetgmd:
+            if type(path) is bytes:
+                translation.targetgmd = None
+            else:
+                print("Target GMD path is required for hand pattern fixing")
+                translation.targetgmd = input("Target GMD path: ")
+        for anm in in_file.animations:
+            anm.bones = finger_pos(anm.bones, translation.targetgmd)
 
     if src_gmt.is_dragon_engine:
         if not dst_gmt.is_dragon_engine:
@@ -405,17 +309,21 @@ def old_to_new_bones(bones: List[Bone], dst_de, motion, gmd_path) -> List[Bone]:
     
     return bones
 
-def finger_pos(bones: List[Bone], gmd_path) -> List[Bone]:
-    gmd = read_gmd_bones(gmd_path)
+def finger_pos(bones: List[Bone], gmd_path=None) -> List[Bone]:
+    if gmd_path:
+        gmd = read_gmd_bones(gmd_path)
     
     for finger in [b for b in bones if b.name.string() in HAND.values()]:
         index = bones.index(finger)
         if not len(finger.position_curves()):
-            gmd_finger = [b for b in gmd if finger.name.string() in b.name]
-            if not len(gmd_finger):
-                continue
-            gmd_finger = gmd_finger[0]
-            x, y, z, w = gmd_finger.local_pos
+            if gmd_path:
+                gmd_finger = [b for b in gmd if finger.name.string()[:-3] + 'r_n' in b.name]
+                if not len(gmd_finger):
+                    continue
+                gmd_finger = gmd_finger[0]
+                x, y, z, w = gmd_finger.local_pos
+            else:
+                x, y, z = KIRYU_HAND[b.name.string()]
             pos = new_pos_curve()
             pos.values = [(x, y, z)]
             finger.curves.insert(0, pos)
