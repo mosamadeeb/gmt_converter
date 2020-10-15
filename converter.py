@@ -211,6 +211,8 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
         # convert old bones to new bones (add _c_n and copy center movement to vector (and sync) accordingly)
         if not translation.targetgmd:
             print("Target GMD path is required for hand pattern fixing")
+            if type(path) is bytes:
+                return -1
             translation.targetgmd = input("Target GMD path: ")
         for anm in in_file.animations:
             anm.bones = old_to_new_bones(anm.bones, dst_gmt.is_dragon_engine, motion, translation.targetgmd)
@@ -231,6 +233,8 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
     if translation.has_operation():
         if not translation.sourcegmd or not translation.targetgmd:
             print("Source and target GMD paths are required for bone translation/reparenting")
+            if type(path) is bytes:
+                return -1
             translation.sourcegmd = input("Source GMD path: ")
             translation.targetgmd = input("Target GMD path: ")
         for anm in in_file.animations:

@@ -68,7 +68,6 @@ def write_animation_data(gmt: GMTFile) -> Tuple[bytearray, List[int], List[int]]
                 sizes.append(anm_data.write_float(c.values, 1, is_iterable=True))
         elif 'ROT' in c.curve_format.name:
             if 'QUAT' in c.curve_format.name:
-                print(c.curve_format.name)
                 if 'SCALED' in c.curve_format.name:
                     sizes.append(anm_data.write_int16(list(map(lambda x: [int(y * 16_384) for y in x], c.values)), count=4, is_iterable=True))
                 else:  # 'HALF_FLOAT'

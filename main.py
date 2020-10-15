@@ -1,13 +1,12 @@
 import argparse
 import os
 import io
+from typing import List
 
 from structure.version import GAME, GMT_VERSION, GMTProperties
 from converter import convert, combine, reset_camera, vector_org, Translation
 
-
-def main():
-    description = """
+description = """
 A tool to convert animations between Yakuza games
 Currently supported Games:
   - Yakuza 0:            y0
@@ -28,7 +27,7 @@ Note2: All Dragon Engine games are the same, so y6 = yk2 = je
 
 """
 
-    epilog = """
+epilog = """
 EXAMPLE
 Convert animations from Yakuza 5 to Yakuza 0
 (source file is from Y5, target file will be used in Y0):
@@ -41,33 +40,31 @@ If you want to convert an entire folder of GMTs, add the -d flag (or -dr to conv
 
 """
 
-    parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('-ig', '--ingame', action='store', help='source game')
-    parser.add_argument('-og', '--outgame', action='store', help='target game')
-    parser.add_argument('-i', '--inpath', action='store', help='GMT input name (or input folder path)')
-    parser.add_argument('-o', '--outpath', action='store', help='GMT output name')
-    parser.add_argument('-mtn', '--motion', action='store_true', help='output GMT will be used in \'motion\' folder (for post-Y5)')
-    parser.add_argument('-rst', '--reset', action='store_true', help='reset body position to origin point at the start of the animation')
-    parser.add_argument('-rhct', '--resethact', action='store_true', help='reset whole hact scene to position of the input gmt (requires both -i as a single file and -d) [overrides --reset]')
-    parser.add_argument('-aoff', '--addoffset', action='store', help='additional height offset for resetting hact scene (for pre-DE hacts) [will be added to scene height]')
+parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter)
+parser.add_argument('-ig', '--ingame', action='store', help='source game')
+parser.add_argument('-og', '--outgame', action='store', help='target game')
+parser.add_argument('-i', '--inpath', action='store', help='GMT input name (or input folder path)')
+parser.add_argument('-o', '--outpath', action='store', help='GMT output name')
+parser.add_argument('-mtn', '--motion', action='store_true', help='output GMT will be used in \'motion\' folder (for post-Y5)')
+parser.add_argument('-rst', '--reset', action='store_true', help='reset body position to origin point at the start of the animation')
+parser.add_argument('-rhct', '--resethact', action='store_true', help='reset whole hact scene to position of the input gmt (requires both -i as a single file and -d) [overrides --reset]')
+parser.add_argument('-aoff', '--addoffset', action='store', help='additional height offset for resetting hact scene (for pre-DE hacts) [will be added to scene height]')
 
-    parser.add_argument('-rp', '--reparent', action='store_true', help='reparent bones for this gmt between models')
-    parser.add_argument('-fc', '--face', action='store_true', help='translate face bones for this gmt between models')
-    parser.add_argument('-hn', '--hand', action='store_true', help='translate hand bones for this gmt between models')
-    parser.add_argument('-bd', '--body', action='store_true', help='translate body (without face or hand) bones for this gmt between models')
-    parser.add_argument('-sgmd', '--sourcegmd', action='store', help='source GMD for translation')
-    parser.add_argument('-tgmd', '--targetgmd', action='store', help='target GMD for translation')
+parser.add_argument('-rp', '--reparent', action='store_true', help='reparent bones for this gmt between models')
+parser.add_argument('-fc', '--face', action='store_true', help='translate face bones for this gmt between models')
+parser.add_argument('-hn', '--hand', action='store_true', help='translate hand bones for this gmt between models')
+parser.add_argument('-bd', '--body', action='store_true', help='translate body (without face or hand) bones for this gmt between models')
+parser.add_argument('-sgmd', '--sourcegmd', action='store', help='source GMD for translation')
+parser.add_argument('-tgmd', '--targetgmd', action='store', help='target GMD for translation')
 
-    parser.add_argument('-d', '--dir', action='store_true', help='the input is a dir')
-    parser.add_argument('-dr', '--recursive', action='store_true', help='the input is a dir; recursively convert subfolders')
-    parser.add_argument('-ns', '--nosuffix', action='store_true', help='do not add suffixes at the end of converted files')
-    parser.add_argument('-sf', '--safe', action='store_true', help='ask before overwriting files')
-    
-    parser.add_argument('-cmb', '--combine', action='store_true', help='combine split animations inside a directory (for pre-Y5 hacts) [WILL NOT CONVERT]')
-    
-    # TODO: add drag and drop support: interactive cli inputs to get required info
-    args = parser.parse_args()
-    
+parser.add_argument('-d', '--dir', action='store_true', help='the input is a dir')
+parser.add_argument('-dr', '--recursive', action='store_true', help='the input is a dir; recursively convert subfolders')
+parser.add_argument('-ns', '--nosuffix', action='store_true', help='do not add suffixes at the end of converted files')
+parser.add_argument('-sf', '--safe', action='store_true', help='ask before overwriting files')
+
+parser.add_argument('-cmb', '--combine', action='store_true', help='combine split animations inside a directory (for pre-Y5 hacts) [WILL NOT CONVERT]')
+
+def process_args(args):
     translation = Translation(args.reparent, args.face, args.hand, args.body, args.sourcegmd, args.targetgmd, args.reset, args.resethact, args.addoffset)
     
     if not args.inpath:
@@ -79,11 +76,11 @@ If you want to convert an entire folder of GMTs, add the -d flag (or -dr to conv
                                           [-sgmd SOURCEGMD] [-tgmd TARGETGMD] [-d] [-dr] [-ns] [-sf] [-cmb]\n")
             print("Error: Provide an input path with -i or put the files in \"<gmt_converter_path>\\input_folder\\\"")
             os.system('pause')
-            return
+            return -1
     
     if args.combine:
         collect(args.inpath, args.outpath, args.nosuffix)
-        return
+        return 0
     
     if not args.ingame:
         args.ingame = input("Enter source game:\n")
@@ -100,50 +97,62 @@ If you want to convert an entire folder of GMTs, add the -d flag (or -dr to conv
         if args.inpath.lower() == args.outpath.lower() and args.nosuffix:
             print("Error: Input path cannot be the same as output path when using --nosuffix with -d or -dr")
             os.system('pause')
-            return
+            return -1
     else:
         if not args.outpath:
             if args.nosuffix:
                 print("Error: Provide an output path when using --nosuffix without -d or -dr")
                 os.system('pause')
-                return
+                return -1
             args.outpath = args.inpath[:-4] + f"-{args.outgame}.gmt"
         if args.inpath.lower() == args.outpath.lower():
             print("Error: Input path cannot be the same as output path when not using -d or -dr")
             os.system('pause')
-            return
+            return -1
     
     if args.ingame not in GAME:
         print(f"Error: Game \'{args.ingame}\' is not supported")
         os.system('pause')
-        return
+        return -1
     if args.outgame not in GAME:
         print(f"Error: Game \'{args.outgame}\' is not supported")
         os.system('pause')
-        return
+        return -1
     if not translation.has_operation() and not translation.has_reset():
         if args.ingame == args.outgame:
             print(f"Error: Cannot convert to the same game")
             os.system('pause')
-            return
+            return -1
         if GMT_VERSION[GAME[args.ingame]] == GMT_VERSION[GAME[args.outgame]]:
             print(f"Error: Conversion is not needed between \'{args.ingame}\' and \'{args.outgame}\'")
             os.system('pause')
-            return
+            return -1
 
-    if args.motion is None:
+    """
+    if not args.motion:
         args.motion = False
         if GMTProperties(GAME[args.outgame]).new_bones and not GMTProperties(GAME[args.ingame]).new_bones:
             print(f"Is the target GMT for {args.outgame} a motion GMT?")
             if input("(y/n) ").lower() == 'y':
                 args.motion = True
-    
+    """
+
     if translation.resethact:
-        # TODO: also reset cmts
         translation.reset = False
         translation.offset = vector_org(args.inpath)
         args.inpath = os.path.dirname(args.inpath)
     
+    return (args, translation)
+
+
+def main():
+    # TODO: add drag and drop support: interactive cli inputs to get required info
+    args = parser.parse_args()
+    processed = process_args(args)
+    if type(processed) is int:
+        return processed
+    args, translation = processed
+
     if args.dir:
         for r, d, f in os.walk(args.inpath):
             for file in f:
@@ -182,7 +191,7 @@ If you want to convert an entire folder of GMTs, add the -d flag (or -dr to conv
                         if result == 's':
                             print("Stopping operation...")
                             os.system('pause')
-                            return
+                            return -1
                         print(f"Skipping \"{output_file}\"...")
                         continue
                 with open(output_file, 'wb') as g:
@@ -254,6 +263,15 @@ def collect(path, outpath, nosuffix):
     
     print("DONE")
     os.system('pause')
+
+def convert_from_buffer(argv: List[str], gmt: bytes, sgmd=None, tgmd=None):
+    processed = process_args(parser.parse_args(argv))
+    if type(processed) is int:
+        return processed
+    args, translation = processed
+    translation.sourcegmd = sgmd
+    translation.targetgmd = tgmd
+    return(convert(gmt, args.ingame, args.outgame, args.motion, translation))
 
 if __name__ == "__main__":
     main()

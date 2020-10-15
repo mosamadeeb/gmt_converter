@@ -122,9 +122,12 @@ def read_animation_data(cmt: BinaryReader, count: int, format: int) -> List[CMTD
 def read_cmt_file(path: str) -> CMTFile:
     file = CMTFile()
     
-    f = open(realpath(path), "rb")
-    cmt = BinaryReader(f.read())
-    f.close()
+    if type(path) is str:
+        f = open(realpath(path), "rb")
+        cmt = BinaryReader(f.read())
+        f.close()
+    else:
+        cmt = BinaryReader(path)
     
     if cmt.read_str(4) != "CMTP":
         print("Invalid magic")

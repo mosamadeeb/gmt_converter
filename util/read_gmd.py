@@ -30,6 +30,7 @@ class GMDBone:
                 re_bones_new = []
                 for bc in re_bones:
                     for c in bc.children:
+                        # TODO: make a proper fix. this works but it's not ideal
                         if c not in self.children_recursive:
                             self.children_recursive.append(c)
                         if c.child != -1:
@@ -38,9 +39,12 @@ class GMDBone:
 
 
 def read_gmd_bones(path: str) -> List[GMDBone]:
-    f = open(realpath(path), "rb")
-    gmd = BinaryReader(f.read())
-    f.close()
+    if type(path) is str:
+        f = open(realpath(path), "rb")
+        gmd = BinaryReader(f.read())
+        f.close()
+    else:
+        gmd = BinaryReader(path)
     
     if gmd.read_str(4) != "GSGM":
         print("Invalid GMD magic!")
