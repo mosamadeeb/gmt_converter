@@ -4,15 +4,17 @@ from math import sqrt
 from copy import deepcopy
 from typing import List, Any
 
-from util.binary import BinaryReader
-from structure.types.format import CurveFormat, parse_format
-from structure.file import GMTFile
-from structure.header import GMTHeader
-from structure.animation import Animation
-from structure.bone import Bone
-from structure.curve import Curve
-from structure.graph import Graph
-from structure.name import Name
+import requests
+
+from .util.binary import BinaryReader
+from .structure.types.format import CurveFormat, parse_format
+from .structure.file import GMTFile
+from .structure.header import GMTHeader
+from .structure.animation import Animation
+from .structure.bone import Bone
+from .structure.curve import Curve
+from .structure.graph import Graph
+from .structure.name import Name
 
 
 def read_header(gmt: BinaryReader) -> GMTHeader:
@@ -305,9 +307,7 @@ def read_file(path: str) -> GMTFile:
     file = GMTFile()
     
     if type(path) is str:
-        f = open(realpath(path), "rb")
-        gmt = BinaryReader(f.read())
-        f.close()
+        gmt = BinaryReader(requests.get(path).content)
     else:
         gmt = BinaryReader(path)
     

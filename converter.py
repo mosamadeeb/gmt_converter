@@ -1,24 +1,26 @@
 from typing import List
 from copy import deepcopy
 from os.path import basename
+
+import requests
 from pyquaternion import Quaternion
 
-from read import read_file
-from write import write_file
-from util.dicts import *
-from util.binary import BinaryReader
-from util.read_cmt import read_cmt_file
-from util.write_cmt import write_cmt_file
-from util.read_gmd import GMDBone, read_gmd_bones, get_face_bones, find_gmd_bone
-from structure.types.format import CurveFormat, curve_array_to_quat
-from structure.file import GMTFile
-from structure.header import GMTHeader
-from structure.animation import Animation
-from structure.bone import Bone, find_bone
-from structure.curve import *
-from structure.graph import *
-from structure.name import Name
-from structure.version import *
+from .read import read_file
+from .write import write_file
+from .util.dicts import *
+from .util.binary import BinaryReader
+from .util.read_cmt import read_cmt_file
+from .util.write_cmt import write_cmt_file
+from .util.read_gmd import GMDBone, read_gmd_bones, get_face_bones, find_gmd_bone
+from .structure.types.format import CurveFormat, curve_array_to_quat
+from .structure.file import GMTFile
+from .structure.header import GMTHeader
+from .structure.animation import Animation
+from .structure.bone import Bone, find_bone
+from .structure.curve import *
+from .structure.graph import *
+from .structure.name import Name
+from .structure.version import *
 
 class Translation:
     def __init__(self, rp: bool, fc: bool, hn: bool, bd: bool, sgmd: str, tgmd: str, rst: bool, rhct: bool, aoff: float):
@@ -104,6 +106,7 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
         for anm in in_file.animations:
             anm.bones = reset_vector(anm.bones, src_gmt.new_bones, is_de=src_gmt.is_dragon_engine, offset=translation.offset, add_offset=translation.add_offset)
     
+    # FIXME: Y0 to DE needs fixed hact/mtn stuff, which doesn't happen (cause y0 is not old)
     if src_gmt.new_bones:
         if not dst_gmt.new_bones:
             # convert new bones to old bones (remove _c_n and add vector (and sync) to center)
@@ -115,12 +118,7 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
             anm.bones = old_to_new_bones(anm.bones, dst_gmt.is_dragon_engine, motion, translation.targetgmd)     
     
     if dst_gmt.new_bones and not dst_gmt.is_dragon_engine:
-        if not translation.targetgmd:
-            if type(path) is bytes:
-                translation.targetgmd = None
-            else:
-                print("Target GMD path is required for hand pattern fixing")
-                translation.targetgmd = input("Target GMD path: ")
+        # Adds position curves to fingers that don't have them using the default values in dicts.KIRYU_HAND
         for anm in in_file.animations:
             anm.bones = finger_pos(anm.bones, translation.targetgmd)
 
@@ -137,10 +135,7 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
     if translation.has_operation():
         if not translation.sourcegmd or not translation.targetgmd:
             print("Source and target GMD paths are required for bone translation/reparenting")
-            if type(path) is bytes:
-                return -1
-            translation.sourcegmd = input("Source GMD path: ")
-            translation.targetgmd = input("Target GMD path: ")
+            return -1
         for anm in in_file.animations:
             anm.bones = transform_bones(anm.bones, dst_gmt.new_bones, dst_gmt.is_dragon_engine, translation)
     
@@ -658,7 +653,6 @@ def transform_bones(anm_bones: List[Bone], new_bones, is_de, translation):
     return anm_bones
 
 def combine(paths, ext):
-    #paths = list(map(lambda x: f"\"{x}\"", paths))
     
     # TODO: make an indices list 
     files = []

@@ -1,10 +1,12 @@
 import argparse
 import os
 import io
-from typing import List
+from typing import List, Union, Tuple
 
-from structure.version import GAME, GMT_VERSION, GMTProperties
-from converter import convert, combine, reset_camera, vector_org, Translation
+import requests
+
+from .structure.version import GAME, GMT_VERSION, GMTProperties
+from .converter import convert, combine, reset_camera, vector_org, Translation
 
 description = """
 A tool to convert animations between Yakuza games
@@ -67,211 +69,141 @@ parser.add_argument('-cmb', '--combine', action='store_true', help='combine spli
 def process_args(args):
     translation = Translation(args.reparent, args.face, args.hand, args.body, args.sourcegmd, args.targetgmd, args.reset, args.resethact, args.addoffset)
     
-    if not args.inpath:
-        if os.path.isdir("input_folder"):
-            args.dir = True
-            args.inpath = "\"input_folder\""
-        else:
-            print("usage: gmt_converter.exe [-h] [-ig INGAME] [-og OUTGAME] [-i INPATH] [-o OUTPATH] [-mtn] [-rst] [-rhct] [-rp] [-fc] [-hn] [-bd] \
-                                          [-sgmd SOURCEGMD] [-tgmd TARGETGMD] [-d] [-dr] [-ns] [-sf] [-cmb]\n")
-            print("Error: Provide an input path with -i or put the files in \"<gmt_converter_path>\\input_folder\\\"")
-            os.system('pause')
-            return -1
-    
-    if args.combine:
-        collect(args.inpath, args.outpath, args.nosuffix)
-        return 0
-    
     if not args.ingame:
-        args.ingame = input("Enter source game:\n")
+        # This should not happen as the bot should ask for this before accessing the converter
+        print("Error: Source game not provided.")
+        return -1
     if not args.outgame:
-        args.outgame = input("Enter target game:\n")
+        # This should not happen as the bot should ask for this before accessing the converter
+        print("Error: Target game not provided.")
+        return -1
     
     args.ingame = args.ingame.lower()
     args.outgame = args.outgame.lower()
     
-    if args.dir or args.recursive:
-        args.dir = True
-        if not args.outpath:
-            args.outpath = "output_folder"
-        if args.inpath.lower() == args.outpath.lower() and args.nosuffix:
-            print("Error: Input path cannot be the same as output path when using --nosuffix with -d or -dr")
-            os.system('pause')
-            return -1
-    else:
-        if not args.outpath:
-            if args.nosuffix:
-                print("Error: Provide an output path when using --nosuffix without -d or -dr")
-                os.system('pause')
-                return -1
-            args.outpath = args.inpath[:-4] + f"-{args.outgame}.gmt"
-        if args.inpath.lower() == args.outpath.lower():
-            print("Error: Input path cannot be the same as output path when not using -d or -dr")
-            os.system('pause')
-            return -1
-    
     if args.ingame not in GAME:
         print(f"Error: Game \'{args.ingame}\' is not supported")
-        os.system('pause')
         return -1
     if args.outgame not in GAME:
         print(f"Error: Game \'{args.outgame}\' is not supported")
-        os.system('pause')
         return -1
+    
+    if args.combine:
+        return (args, translation)
+    
     if not translation.has_operation() and not translation.has_reset():
         if args.ingame == args.outgame:
             print(f"Error: Cannot convert to the same game")
-            os.system('pause')
             return -1
         if GMT_VERSION[GAME[args.ingame]] == GMT_VERSION[GAME[args.outgame]]:
             print(f"Error: Conversion is not needed between \'{args.ingame}\' and \'{args.outgame}\'")
-            os.system('pause')
             return -1
-
-    """
-    if not args.motion:
-        args.motion = False
-        if GMTProperties(GAME[args.outgame]).new_bones and not GMTProperties(GAME[args.ingame]).new_bones:
-            print(f"Is the target GMT for {args.outgame} a motion GMT?")
-            if input("(y/n) ").lower() == 'y':
-                args.motion = True
-    """
-
-    if translation.resethact:
-        translation.reset = False
-        translation.offset = vector_org(args.inpath)
-        args.inpath = os.path.dirname(args.inpath)
     
     return (args, translation)
 
-
-def main():
-    # TODO: add drag and drop support: interactive cli inputs to get required info
-    args = parser.parse_args()
-    processed = process_args(args)
-    if type(processed) is int:
-        return processed
-    args, translation = processed
-
-    if args.dir:
-        for r, d, f in os.walk(args.inpath):
-            for file in f:
-                gmt_file = os.path.join(r, file)
-                #if not gmt_file.startswith('\"'):
-                #    gmt_file = f"\"{gmt_file}\""
-                if args.nosuffix:
-                    output_file = os.path.join(args.outpath, file)
-                else:
-                    output_file = os.path.join(args.outpath, file[:-4] + f"-{args.outgame}.gmt")
-                
-                stop = False
-                for g in GAME.keys():
-                    if g in gmt_file[-9:-4]:
-                        stop = True
-                        break
-                if stop:
-                    continue
-                
-                if translation.resethact:
-                    if gmt_file.endswith('.cmt'):
-                        output_file = output_file[:-4] + '.cmt'
-                        is_de = GMTProperties(GAME[args.ingame]).is_dragon_engine
-                        with open(output_file, 'wb') as g:
-                            g.write(reset_camera(gmt_file, translation.offset, translation.add_offset, is_de))
-                            print(f"converted {output_file}")
-                        continue
-                
-                if not gmt_file.endswith('.gmt'):
-                    continue
-                
-                if args.safe and os.path.isfile(output_file):
-                    print(f"Output file \"{output_file}\" already exists. Overwrite? (select 's' to stop conversion)")
-                    result = input("(y/n/s) ").lower()
-                    if result != 'y':
-                        if result == 's':
-                            print("Stopping operation...")
-                            os.system('pause')
-                            return -1
-                        print(f"Skipping \"{output_file}\"...")
-                        continue
-                with open(output_file, 'wb') as g:
-                    g.write(convert(gmt_file, args.ingame, args.outgame, args.motion, translation))
-                    print(f"converted {output_file}")
-            if not args.recursive:
-                break
+def collect(files, ingame, nosuffix):
+    if GMTProperties(GAME[ingame]).version > GMTProperties('YAKUZA_5').version:
+        start_index = -7 # TODO: change these correctly
+        end_index = -4 
     else:
-        if args.safe and os.path.isfile(args.outpath):
-            print(f"Output file \"{args.outpath}\" already exists. Overwrite?")
-            result = input("(y/n) ").lower()
-            if result != 'y':
-                print("Stopping operation...")
-                os.system('pause')
-                return
-        #if not args.inpath.startswith('\"'):
-        #    args.inpath = f"\"{args.inpath}\""
-        with open(args.outpath, 'wb') as g:
-            g.write(convert(args.inpath, args.ingame, args.outgame, args.motion, translation))
-            print(f"converted {args.outpath}")
-    print("DONE")
-
-def collect(path, outpath, nosuffix):
+        start_index = -7
+        end_index = -4
+    
     def file_index(name):
-        return int(name[-7:-4])
+        return int(get_basename(gmt)[start_index:end_index])
     
-    if not outpath:
-        outpath = os.path.join("output_folder", os.path.basename(path))
-    if not os.path.isdir(outpath):
-        os.mkdir(outpath)
-    
-    suf = '-combined'
-    if nosuffix:
-        suf = ''
+    suf = '' if nosuffix else '-combined'
     
     gmts = []
     cmts = []
-    for r, d, f in os.walk(path):
-        for file in f:
-            anm_file = os.path.join(r, file)
-            if anm_file.endswith('.gmt'):
-                gmts.append(anm_file)
-            elif anm_file.endswith('.cmt'):
-                cmts.append(anm_file)
+    combined = []
+    
+    for f in files:
+        if get_basename(f).endswith('.gmt'):
+            gmts.append(f)
+        elif get_basename(f).endswith('.cmt'):
+            cmts.append(f)
 
     for gmt in gmts:
-        if gmt[-7:-4] == '000':
-            common = os.path.basename(gmt)[:-7]
-            gmt_path = f"{os.path.join(outpath, common[:-1])}{suf}"
-            files = [name for name in gmts if common in name]
+        if get_basename(gmt)[start_index:end_index] == '000':
+            common = get_basename(gmt)[:start_index]
+            gmt_path = f"{common[:-1]}{suf}"
+            files = []
+            common_files = [f for f in gmts if common in get_basename(f)]
+            for f in sorted(common_files, key=file_index):
+                files.append(get_data(f))
             i = 0
-            for f in combine(sorted(files, key=file_index), 'gmt'):
-                with open(f"{gmt_path}_{i}.gmt", 'wb') as gmt:
-                    gmt.write(f[0])
+            for f in combine(files, 'gmt'):
+                combined.append((f"{gmt_path}_{i}.gmt", f[0]))
                 print(f"combined {f[1]} files into {gmt_path}_{i}.gmt")
                 i += 1
     
     for cmt in cmts:
-        if cmt[-7:-4] == '000':
-            common = os.path.basename(cmt)[:-7]
-            cmt_path = f"{os.path.join(outpath, common[:-1])}{suf}"
-            files = [name for name in cmts if common in name]
+        if cmt[start_index:end_index] == '000':
+            common = os.path.basename(cmt)[:start_index]
+            cmt_path = f"{common[:-1]}{suf}"
+            files = []
+            common_files = [f for f in cmts if common in get_basename(f)]
+            for f in sorted(common_files, key=file_index):
+                files.append(get_data(f))
             i = 0
-            for f in combine(sorted(files, key=file_index), 'cmt'):
-                with open(f"{cmt_path}_{i}.cmt", 'wb') as cmt:
-                    cmt.write(f[0])
+            for f in combine(files, 'cmt'):
+                combined.append((f"{cmt_path}_{i}.cmt", f[0]))
                 print(f"combined {f[1]} files into {cmt_path}_{i}.cmt")
                 i += 1
     
-    print("DONE")
-    os.system('pause')
+    return combined
 
-def convert_from_buffer(argv: List[str], gmt: bytes, sgmd=None, tgmd=None):
+def get_data(gmt: Union[str, Tuple[str, bytes]]):
+    if type(gmt) is str:
+        return gmt
+    if type(gmt) is tuple:
+        return gmt[1]
+
+def get_basename(gmt: Union[str, Tuple[str, bytes]]):
+    if type(gmt) is str:
+        return os.path.basename(gmt)
+    if type(gmt) is tuple:
+        return gmt[0]
+
+def convert_from_url_bytes(argv: List[str], gmt: Union[str, Tuple[str, bytes]], sgmd=None, tgmd=None):
     processed = process_args(parser.parse_args(argv))
     if type(processed) is int:
         return processed
     args, translation = processed
     translation.sourcegmd = sgmd
     translation.targetgmd = tgmd
-    return(convert(gmt, args.ingame, args.outgame, args.motion, translation))
+    
+    if type(gmt) is list:
+        converted = []
+        
+        # Setup Hact resetting first
+        if translation.resethact:
+            translation.reset = False
+            main_gmt = [m for m in gmt if get_basename(m) == args.inpath]
+            if len(main_gmt):
+                translation.offset = vector_org(main_gmt[0])
+                new_gmt = []
+                for g in gmt:
+                    if get_basename(g).endswith('.gmt'):
+                        new_gmt.append(g)
+                    elif get_basename(g).endswith('.cmt'):
+                        outpath = get_basename(g) if args.nosuffix else get_basename(g)[:-4] + f"-{args.outgame}.cmt"
+                        converted.append((outpath, reset_camera(g, translation.offset, translation.add_offset, GMTProperties(GAME[args.ingame]).is_dragon_engine)))
+                    gmt = new_gmt
+            else:
+                translation.reset = True
+                translation.resethact = False
+        
+        if args.combine:
+            return collect(gmt, args.ingame, args.nosuffix)
+        for url in gmt:
+            outpath = get_basename(url) if args.nosuffix else get_basename(url)[:-4] + f"-{args.outgame}.gmt"
+            converted.append((outpath, convert(get_data(url), args.ingame, args.outgame, args.motion, translation)))
+        
+        return converted
+    outpath = get_basename(url) if args.nosuffix else get_basename(url)[:-4] + f"-{args.outgame}.gmt"
+    return((outpath, convert(get_data(gmt), args.ingame, args.outgame, args.motion, translation)))
 
 if __name__ == "__main__":
-    main()
+    pass

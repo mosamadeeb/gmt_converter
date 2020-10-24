@@ -2,15 +2,15 @@ from typing import List, Tuple
 
 from pyquaternion import Quaternion
 
-from util.binary import BinaryReader
-from structure.types.format import CurveFormat, pack_curve_format
-from structure.file import GMTFile
-from structure.header import GMTHeader
-from structure.animation import Animation
-from structure.bone import Bone
-from structure.curve import Curve
-from structure.graph import Graph
-from structure.name import Name
+from .util.binary import BinaryReader
+from .structure.types.format import CurveFormat, pack_curve_format
+from .structure.file import GMTFile
+from .structure.header import GMTHeader
+from .structure.animation import Animation
+from .structure.bone import Bone
+from .structure.curve import Curve
+from .structure.graph import Graph
+from .structure.name import Name
 
 def write_anm_maps(gmt: GMTFile) -> bytearray:
     anm_maps = BinaryReader(bytearray())

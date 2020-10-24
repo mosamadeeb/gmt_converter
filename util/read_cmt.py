@@ -1,6 +1,8 @@
 from typing import List
 from os.path import basename, realpath
 
+import requests
+
 from .binary import BinaryReader
 
 
@@ -41,7 +43,6 @@ class CMTHeader:
 class CMTFile:
     def __init__(self):
         pass
-    name: str
     header: CMTHeader
     animations: List[CMTAnimation]
     
@@ -123,17 +124,13 @@ def read_cmt_file(path: str) -> CMTFile:
     file = CMTFile()
     
     if type(path) is str:
-        f = open(realpath(path), "rb")
-        cmt = BinaryReader(f.read())
-        f.close()
+        cmt = BinaryReader(requests.get(path).content)
     else:
         cmt = BinaryReader(path)
     
     if cmt.read_str(4) != "CMTP":
         print("Invalid magic")
         return "Invalid magic"
-    
-    file.name = basename(path)[:-4]
     
     file.header = read_header(cmt)
     

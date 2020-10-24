@@ -2,6 +2,8 @@ from typing import List
 from copy import deepcopy
 from os.path import realpath
 
+import requests
+
 from .binary import BinaryReader
 
 class GMDBone:
@@ -40,9 +42,7 @@ class GMDBone:
 
 def read_gmd_bones(path: str) -> List[GMDBone]:
     if type(path) is str:
-        f = open(realpath(path), "rb")
-        gmd = BinaryReader(f.read())
-        f.close()
+        gmd = BinaryReader(requests.get(path).content)
     else:
         gmd = BinaryReader(path)
     

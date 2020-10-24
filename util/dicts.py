@@ -1,4 +1,4 @@
-from structure.types.format import CurveFormat
+from ..structure.types.format import CurveFormat
 
 FLOAT_TO_SCALED = {
     CurveFormat.ROT_QUAT_HALF_FLOAT: CurveFormat.ROT_QUAT_SCALED,
