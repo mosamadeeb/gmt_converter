@@ -39,12 +39,9 @@ class GMDBone:
 
 
 def read_gmd_bones(path: str) -> List[GMDBone]:
-    if type(path) is str:
-        f = open(realpath(path), "rb")
-        gmd = BinaryReader(f.read())
-        f.close()
-    else:
-        gmd = BinaryReader(path)
+    f = open(realpath(path), "rb")
+    gmd = BinaryReader(f.read())
+    f.close()
     
     if gmd.read_str(4) != "GSGM":
         print("Invalid GMD magic!")

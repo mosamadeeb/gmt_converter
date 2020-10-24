@@ -128,15 +128,6 @@ def process_args(args):
             os.system('pause')
             return -1
 
-    """
-    if not args.motion:
-        args.motion = False
-        if GMTProperties(GAME[args.outgame]).new_bones and not GMTProperties(GAME[args.ingame]).new_bones:
-            print(f"Is the target GMT for {args.outgame} a motion GMT?")
-            if input("(y/n) ").lower() == 'y':
-                args.motion = True
-    """
-
     if translation.resethact:
         translation.reset = False
         translation.offset = vector_org(args.inpath)
@@ -263,15 +254,6 @@ def collect(path, outpath, nosuffix):
     
     print("DONE")
     os.system('pause')
-
-def convert_from_buffer(argv: List[str], gmt: bytes, sgmd=None, tgmd=None):
-    processed = process_args(parser.parse_args(argv))
-    if type(processed) is int:
-        return processed
-    args, translation = processed
-    translation.sourcegmd = sgmd
-    translation.targetgmd = tgmd
-    return(convert(gmt, args.ingame, args.outgame, args.motion, translation))
 
 if __name__ == "__main__":
     main()
