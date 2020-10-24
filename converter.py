@@ -106,16 +106,21 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
         for anm in in_file.animations:
             anm.bones = reset_vector(anm.bones, src_gmt.new_bones, is_de=src_gmt.is_dragon_engine, offset=translation.offset, add_offset=translation.add_offset)
     
-    # FIXME: Y0 to DE needs fixed hact/mtn stuff, which doesn't happen (cause y0 is not old)
     if src_gmt.new_bones:
-        if not dst_gmt.new_bones:
+        if not dst_gmt.new_bones or (src_gmt.is_dragon_engine and not dst_gmt.is_dragon_engine):
             # convert new bones to old bones (remove _c_n and add vector (and sync) to center)
             for anm in in_file.animations:
-                anm.bones = new_to_old_bones(anm.bones, src_gmt.is_dragon_engine)
+                anm.bones = new_to_old_bones(
+                    anm.bones, src_gmt.is_dragon_engine, dst_gmt.new_bones, motion, translation.targetgmd)
+        elif not src_gmt.is_dragon_engine and dst_gmt.is_dragon_engine:
+            # convert post-Y5 bones to DE bones (copy center movement to vector)
+            for anm in in_file.animations:
+                anm.bones = old_to_new_bones(
+                    anm.bones, src_gmt.new_bones, dst_gmt.is_dragon_engine, motion, translation.targetgmd)
     elif dst_gmt.new_bones:
         # convert old bones to new bones (add _c_n and copy center movement to vector (and sync) accordingly)
         for anm in in_file.animations:
-            anm.bones = old_to_new_bones(anm.bones, dst_gmt.is_dragon_engine, motion, translation.targetgmd)     
+            anm.bones = old_to_new_bones(anm.bones, src_gmt.new_bones, dst_gmt.is_dragon_engine, motion, translation.targetgmd)     
     
     if dst_gmt.new_bones and not dst_gmt.is_dragon_engine:
         # Adds position curves to fingers that don't have them using the default values in dicts.KIRYU_HAND
@@ -251,18 +256,16 @@ def de_to_old_kosi(bones: List[Bone]) -> List[Bone]:
     
     return bones
 
-def old_to_new_bones(bones: List[Bone], dst_de, motion, gmd_path) -> List[Bone]:
+def old_to_new_bones(bones: List[Bone], src_new, dst_de, motion, gmd_path) -> List[Bone]:
     
     c_index = 0
-    center = [b for b in bones if 'center' in b.name.string()]
-    if len(center):
-        center = center[0]
-        c_index = bones.index(center)
-        
-        vector = [b for b in bones if 'vector' in b.name.string()]
-        if len(vector):
-            vector = vector[0]
-            v_index = bones.index(vector)
+    center_bone = find_bone('center', bones)
+    if center_bone[0]:
+        center, c_index = center_bone
+
+        vector_bone = find_bone('vector', bones)
+        if vector_bone[0]:
+            vector, v_index = vector_bone
         else:
             vector = Bone()
             vector.name = Name("vector_c_n")
@@ -276,15 +279,15 @@ def old_to_new_bones(bones: List[Bone], dst_de, motion, gmd_path) -> List[Bone]:
                     x, y, z = (0.0, 1.14, 0.0)
                     if gmd_path:
                         gmd = read_gmd_bones(gmd_path)
-                        gmd_center = [b for b in gmd if 'center' in b.name]
-                        if len(gmd_center):
-                            x, y, z, w = gmd_center[0].global_pos
+                        gmd_center, _ = find_gmd_bone('center', gmd)
+                        if gmd_center:
+                            x, y, z, _ = gmd_center.global_pos
                     c_pos = c_pos[0]
                     c_pos.values = list(map(lambda p: (p[0] - x, p[1] - y, p[2] - z), c_pos.values))
                     center.curves[0] = c_pos
                     vector.curves = center.curves
                     center.curves = []
-            else:
+            elif not src_new:
                 vector.curves = center.curves
                 center.curves = [c.to_vertical() for c in deepcopy(center.position_curves())]
                 
@@ -316,7 +319,7 @@ def finger_pos(bones: List[Bone], gmd_path=None) -> List[Bone]:
                 if not len(gmd_finger):
                     continue
                 gmd_finger = gmd_finger[0]
-                x, y, z, w = gmd_finger.local_pos
+                x, y, z, _ = gmd_finger.local_pos
             else:
                 x, y, z = KIRYU_HAND[b.name.string()]
             pos = new_pos_curve()
@@ -326,18 +329,17 @@ def finger_pos(bones: List[Bone], gmd_path=None) -> List[Bone]:
     
     return bones
     
-def new_to_old_bones(bones: List[Bone], is_dragon_engine) -> List[Bone]:
-    # need to check if it's DE as well, to know which bone to use for whole object movement
-    # also need to know what kind of animation it is (hact, cutscene hact, motion), for the same reason above
+def new_to_old_bones(bones: List[Bone], src_de, dst_new, motion, gmd_path) -> List[Bone]:
     
-    center = [b for b in bones if 'center' in b.name.string()]
-    if len(center):
-        center = center[0]
-        index = bones.index(center)
-        vector = [b for b in bones if b.name.string() == "vector_c_n"][0]
-        v_index = bones.index(vector)
+    center_bone = find_bone('center', bones)
+    if center_bone[0]:
+        center, index = center_bone
+        vector, _ = find_bone('vector', bones)
+        if not vector:
+            # TODO: Add an actual error here
+            return bones
         
-        if is_dragon_engine:
+        if src_de:
             center = vector
             center.name.update('center_c_n')
         else:
@@ -346,12 +348,13 @@ def new_to_old_bones(bones: List[Bone], is_dragon_engine) -> List[Bone]:
             center.curves = [add_curve(c, v) for c, v in zip(pos, v_pos)]
             center.curves.extend(vector.rotation_curves())
         
-        del bones[v_index]
         bones[index] = deepcopy(center)
+        if not dst_new:
+            bones.remove(vector)
     
-    sync = [b for b in bones if b.name.string() == "sync_c_n"]
-    if len(sync):
-        bones.remove(sync[0])
+    sync, _ = find_bone('sync_c_n', bones)
+    if sync:
+        bones.remove(sync)
     
     return bones
 
