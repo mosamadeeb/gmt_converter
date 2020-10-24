@@ -6,6 +6,7 @@ import requests
 
 from .binary import BinaryReader
 
+
 class GMDBone:
     def __init__(self):
         self.name = ""
@@ -14,7 +15,7 @@ class GMDBone:
         self.local_pos = ()
         self.local_rot = ()
         self.local_scale = ()
-        self.global_pos = (0,0,0,0)
+        self.global_pos = (0, 0, 0, 0)
         self.axis = ()
         self.length = 0
 
@@ -22,7 +23,7 @@ class GMDBone:
         self.children_recursive = []
         self.parent_recursive = []
         self.parent_index = -1
-    
+
     # FIXME: has duplicate bones
     def get_children_recursive(self):
         self.children_recursive = self.children
@@ -45,36 +46,36 @@ def read_gmd_bones(path: str) -> List[GMDBone]:
         gmd = BinaryReader(requests.get(path).content)
     else:
         gmd = BinaryReader(path)
-    
+
     if gmd.read_str(4) != "GSGM":
         print("Invalid GMD magic!")
         return
-    
+
     gmd.skip(1)
-    
+
     gmd.set_endian(bool(gmd.read_uint8()))
-    
+
     gmd.seek(0x30)
     bone_offset = gmd.read_uint32()
-    
+
     gmd.seek(0x5C)
     bone_count = gmd.read_uint32()
-    
+
     gmd.seek(0x80)
     names_offset = gmd.read_uint32()
-    
+
     bones = []
     for b in range(bone_count):
         bone = GMDBone()
-        
+
         gmd.seek(bone_offset + (0x80 * b))
-        
+
         gmd.skip(0x4)
         bone.child = gmd.read_int32()
         bone.sibling = gmd.read_int32()
         gmd.skip(0xC)
         name_index = gmd.read_int32()
-        
+
         gmd.skip(4)
         bone.local_pos = gmd.read_float(4)
         bone.local_rot = gmd.read_float(4)
@@ -82,12 +83,13 @@ def read_gmd_bones(path: str) -> List[GMDBone]:
         bone.global_pos = gmd.read_float(4)
         bone.axis = gmd.read_float(3)
         bone.length = gmd.read_float()
-        
+
         gmd.seek(names_offset + (name_index * 0x20) + 2)
         bone.name = str(gmd.read_str(30))
         bones.append(bone)
-    
+
     return get_children(bones)
+
 
 def get_children(bones):
     for bone in bones:
@@ -100,6 +102,7 @@ def get_children(bones):
             i = b.sibling
     return get_parents(bones)
 
+
 def get_parents(bones):
     for bone in bones:
         i = bone.parent_index
@@ -109,23 +112,25 @@ def get_parents(bones):
             i = b.parent_index
     return bones
 
+
 def get_face_bones(bones):
-    face = [b for b in  bones if 'face' in b.name][0]
-    jaw = [b for b in  bones if 'jaw' in b.name][0]
-    
+    face = [b for b in bones if 'face' in b.name][0]
+    jaw = [b for b in bones if 'jaw' in b.name][0]
+
     i = face.child
     while i != -1:
         b = bones[i]
         face.children.append(b)
         i = b.sibling
-    
+
     i = jaw.child
     while i != -1:
         b = bones[i]
         jaw.children.append(b)
         i = b.sibling
-    
+
     return (face, jaw)
+
 
 def find_gmd_bone(name: str, bones: List[GMDBone]):
     results = [b for b in bones if name in b.name]

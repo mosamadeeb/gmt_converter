@@ -2,18 +2,18 @@ from enum import Enum, auto
 
 # Used for translating arguments to game names
 GAME = {
-'y0': 'YAKUZA_0',
-'yk1': 'YAKUZA_K',
-'yk2': 'YAKUZA_K2',
-'y3': 'YAKUZA_3',
-'y4': 'YAKUZA_4',
-'y5': 'YAKUZA_5',
-'y6': 'YAKUZA_6',
-'yken': 'KENZAN',
-'yish': 'ISHIN',
-'yds': 'DEAD_SOULS',
-'fotns': 'FOTNS',
-'je': 'JUDGMENT'
+    'y0': 'YAKUZA_0',
+    'yk1': 'YAKUZA_K',
+    'yk2': 'YAKUZA_K2',
+    'y3': 'YAKUZA_3',
+    'y4': 'YAKUZA_4',
+    'y5': 'YAKUZA_5',
+    'y6': 'YAKUZA_6',
+    'yken': 'KENZAN',
+    'yish': 'ISHIN',
+    'yds': 'DEAD_SOULS',
+    'fotns': 'FOTNS',
+    'je': 'JUDGMENT'
 }
 
 # [version, new_bones, is_dragon_engine]
@@ -31,6 +31,7 @@ GMT_VERSION = {
     'FOTNS':      [0X20002, True, False],
     'JUDGMENT':   [0X20002, True, True]
 }
+
 
 class Context(Enum):
     HACT = auto(),
@@ -54,7 +55,7 @@ class Context(Enum):
 # Context: the origin of the GMT animation
 #   old engine games that use vector bone (Ishin/Y0/K1/FOTNS) behave differently according to
 #   whether the gmt is located in motion (for everything that is not a cutscene) or hact/auth
-#   
+#
 #   motion gmts rely on center bone for vertical movement, and on vector for horizontal plane movement
 #   hact and auth gmts need both center and vector to have full movement (or maybe only center?)
 #   it is currently unknown whether rotations are used in the same manner or not
@@ -65,9 +66,9 @@ class GMTProperties:
         self.version: int = props[0]
         self.new_bones: bool = props[1]
         self.is_dragon_engine: bool = props[2]
-    
+
     context: Context
-    
+
     def set_context(self, context: int):
         if context == 0:
             self.context = Context.HACT

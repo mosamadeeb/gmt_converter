@@ -1,14 +1,15 @@
 from .name import Name
 
+
 class GMTHeader:
     def __init__(self):
         pass
- 
+
     big_endian: bool
     version: int
     data_size: int
     file_name: Name
-    
+
     anm_count: int
     anm_offset: int
     graph_count: int
@@ -25,5 +26,5 @@ class GMTHeader:
     curve_offset: int
     anm_data_size: int
     anm_data_offset: int
-    
+
     flags: int

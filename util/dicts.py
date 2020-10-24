@@ -9,11 +9,13 @@ FLOAT_TO_SCALED = {
 
 SCALED_TO_FLOAT = dict(map(reversed, FLOAT_TO_SCALED.items()))
 
+
 def new_face(name, name_new, types):
     new = {}
     for t in types:
         new[f'_{name}_{t}'] = f'_{name_new}_{t}_n'
     return new
+
 
 NEW_BONES = {
     'pattern_n': 'pattern_c_n',
@@ -23,11 +25,11 @@ NEW_BONES = {
     'mune_n': 'mune_c_n',
     'kubi_n': 'kubi_c_n',
     'face': 'face_c_n',
-    #'ude1_r2_n': 'kata_pad_r_sup',
-    #'ude1_l2_n': 'kata_pad_l_sup',
-    #'ude1_r2_n': 'waki_r_sup', # TODO: this isn't correct. they're in the same place but their functions are different
+    # 'ude1_r2_n': 'kata_pad_r_sup',
+    # 'ude1_l2_n': 'kata_pad_l_sup',
+    # 'ude1_r2_n': 'waki_r_sup', # TODO: this isn't correct. they're in the same place but their functions are different
     # actual ude1_r2_n should be kata_pad_r_sup, but they are in different places
-    #'ude1_l2_n': 'waki_l_sup',
+    # 'ude1_l2_n': 'waki_l_sup',
     'ude3_r2_n': 'ude2_twist_r_sup',
     'ude3_l2_n': 'ude2_twist_l_sup',
     'buki_r_n': 'buki1_r_n',
@@ -40,7 +42,7 @@ HAND = {
 }
 
 for b in ['naka', 'hito', 'oya', 'koyu', 'kusu']:
-    for i in range(1,4):
+    for i in range(1, 4):
         for d in ['r', 'l']:
             HAND[f'{b}{i}_{d}'] = f'{b}{i}_{d}_n'
 
@@ -63,7 +65,7 @@ FACE.update(new_face('nose_side', 'cheek1', ['r', 'l']))
 FACE.update(new_face('cheek', 'cheek3', ['r', 'l']))
 FACE.update(new_face('cheek2', 'cheek2', ['r', 'l']))
 FACE.update(new_face('puff', 'cheek_btm1', ['r', 'l']))
-#FACE.update(new_face('nose_top', 'nose_top', ['c'])) # TODO: should probably remove this
+# FACE.update(new_face('nose_top', 'nose_top', ['c'])) # TODO: should probably remove this
 FACE.update(new_face('nostril', 'nose_side', ['r', 'l']))
 FACE.update(new_face('lip_top', 'lip_top', ['r', 'l', 'c']))
 FACE.update(new_face('lip_top_side', 'lip_side', ['r', 'l']))
@@ -120,5 +122,6 @@ KIRYU_HAND = {
 KIRYU_HAND_R = dict()
 for l in KIRYU_HAND:
     right = l[:-3] + 'r_n'
-    KIRYU_HAND_R[right] = KIRYU_HAND[l][0] * -1, KIRYU_HAND[l][1], KIRYU_HAND[l][2]
+    KIRYU_HAND_R[right] = KIRYU_HAND[l][0] * - \
+        1, KIRYU_HAND[l][1], KIRYU_HAND[l][2]
 KIRYU_HAND.update(KIRYU_HAND_R)

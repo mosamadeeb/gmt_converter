@@ -3,6 +3,7 @@ from enum import Enum
 
 from pyquaternion import Quaternion
 
+
 class CurveFormat(Enum):
     # format_minor = 0 is ROT
     # format_minor = 1 is POS
@@ -19,7 +20,8 @@ class CurveFormat(Enum):
     ROT_XW_FLOAT = (0x10, 1, 1)
     ROT_YW_FLOAT = (0x11, 2, 1)
     ROT_ZW_FLOAT = (0x12, 3, 1)
-    ROT_XW_FLOAT_2 = (0x10, 1, 2)  # Same formats, but with the version difference added for conveniency
+    # Same formats, but with the version difference added for conveniency
+    ROT_XW_FLOAT_2 = (0x10, 1, 2)
     ROT_YW_FLOAT_2 = (0x11, 2, 2)
     ROT_ZW_FLOAT_2 = (0x12, 3, 2)
     ROT_XW_HALF_FLOAT = (0x13, 1, 1)
@@ -39,7 +41,7 @@ class CurveFormat(Enum):
 def parse_format(property_fmt: int, format: int, version: int) -> CurveFormat:
     format_minor = format & 0xFF
     format_major = format >> 16
-    
+
     if format_minor == 0:
         # rotation
         if property_fmt == 1:
@@ -108,8 +110,9 @@ def parse_format(property_fmt: int, format: int, version: int) -> CurveFormat:
             else:
                 return CurveFormat.UNSUPPORTED
             """
-            
+
     return CurveFormat.UNSUPPORTED
+
 
 def pack_curve_format(curve_format: CurveFormat) -> Tuple[int, int]:
     if 'ROT' in curve_format.name:
@@ -122,7 +125,7 @@ def pack_curve_format(curve_format: CurveFormat) -> Tuple[int, int]:
         format_minor = 5
     format_major = curve_format.value[1] << 16
     return (curve_format.value[0], format_major + format_minor)
-    
+
 
 def curve_array_to_quat(format: CurveFormat, value) -> Quaternion:
     if 'XW' in format.name:

@@ -42,33 +42,52 @@ If you want to convert an entire folder of GMTs, add the -d flag (or -dr to conv
 
 """
 
-parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter)
+parser = argparse.ArgumentParser(
+    description=description, epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument('-ig', '--ingame', action='store', help='source game')
 parser.add_argument('-og', '--outgame', action='store', help='target game')
-parser.add_argument('-i', '--inpath', action='store', help='GMT input name (or input folder path)')
+parser.add_argument('-i', '--inpath', action='store',
+                    help='GMT input name (or input folder path)')
 parser.add_argument('-o', '--outpath', action='store', help='GMT output name')
-parser.add_argument('-mtn', '--motion', action='store_true', help='output GMT will be used in \'motion\' folder (for post-Y5)')
-parser.add_argument('-rst', '--reset', action='store_true', help='reset body position to origin point at the start of the animation')
-parser.add_argument('-rhct', '--resethact', action='store_true', help='reset whole hact scene to position of the input gmt (requires both -i as a single file and -d) [overrides --reset]')
-parser.add_argument('-aoff', '--addoffset', action='store', help='additional height offset for resetting hact scene (for pre-DE hacts) [will be added to scene height]')
+parser.add_argument('-mtn', '--motion', action='store_true',
+                    help='output GMT will be used in \'motion\' folder (for post-Y5)')
+parser.add_argument('-rst', '--reset', action='store_true',
+                    help='reset body position to origin point at the start of the animation')
+parser.add_argument('-rhct', '--resethact', action='store_true',
+                    help='reset whole hact scene to position of the input gmt (requires both -i as a single file and -d) [overrides --reset]')
+parser.add_argument('-aoff', '--addoffset', action='store',
+                    help='additional height offset for resetting hact scene (for pre-DE hacts) [will be added to scene height]')
 
-parser.add_argument('-rp', '--reparent', action='store_true', help='reparent bones for this gmt between models')
-parser.add_argument('-fc', '--face', action='store_true', help='translate face bones for this gmt between models')
-parser.add_argument('-hn', '--hand', action='store_true', help='translate hand bones for this gmt between models')
-parser.add_argument('-bd', '--body', action='store_true', help='translate body (without face or hand) bones for this gmt between models')
-parser.add_argument('-sgmd', '--sourcegmd', action='store', help='source GMD for translation')
-parser.add_argument('-tgmd', '--targetgmd', action='store', help='target GMD for translation')
+parser.add_argument('-rp', '--reparent', action='store_true',
+                    help='reparent bones for this gmt between models')
+parser.add_argument('-fc', '--face', action='store_true',
+                    help='translate face bones for this gmt between models')
+parser.add_argument('-hn', '--hand', action='store_true',
+                    help='translate hand bones for this gmt between models')
+parser.add_argument('-bd', '--body', action='store_true',
+                    help='translate body (without face or hand) bones for this gmt between models')
+parser.add_argument('-sgmd', '--sourcegmd', action='store',
+                    help='source GMD for translation')
+parser.add_argument('-tgmd', '--targetgmd', action='store',
+                    help='target GMD for translation')
 
-parser.add_argument('-d', '--dir', action='store_true', help='the input is a dir')
-parser.add_argument('-dr', '--recursive', action='store_true', help='the input is a dir; recursively convert subfolders')
-parser.add_argument('-ns', '--nosuffix', action='store_true', help='do not add suffixes at the end of converted files')
-parser.add_argument('-sf', '--safe', action='store_true', help='ask before overwriting files')
+parser.add_argument('-d', '--dir', action='store_true',
+                    help='the input is a dir')
+parser.add_argument('-dr', '--recursive', action='store_true',
+                    help='the input is a dir; recursively convert subfolders')
+parser.add_argument('-ns', '--nosuffix', action='store_true',
+                    help='do not add suffixes at the end of converted files')
+parser.add_argument('-sf', '--safe', action='store_true',
+                    help='ask before overwriting files')
 
-parser.add_argument('-cmb', '--combine', action='store_true', help='combine split animations inside a directory (for pre-Y5 hacts) [WILL NOT CONVERT]')
+parser.add_argument('-cmb', '--combine', action='store_true',
+                    help='combine split animations inside a directory (for pre-Y5 hacts) [WILL NOT CONVERT]')
+
 
 def process_args(args):
-    translation = Translation(args.reparent, args.face, args.hand, args.body, args.sourcegmd, args.targetgmd, args.reset, args.resethact, args.addoffset)
-    
+    translation = Translation(args.reparent, args.face, args.hand, args.body,
+                              args.sourcegmd, args.targetgmd, args.reset, args.resethact, args.addoffset)
+
     if not args.ingame:
         # This should not happen as the bot should ask for this before accessing the converter
         print("Error: Source game not provided.")
@@ -77,47 +96,49 @@ def process_args(args):
         # This should not happen as the bot should ask for this before accessing the converter
         print("Error: Target game not provided.")
         return -1
-    
+
     args.ingame = args.ingame.lower()
     args.outgame = args.outgame.lower()
-    
+
     if args.ingame not in GAME:
         print(f"Error: Game \'{args.ingame}\' is not supported")
         return -1
     if args.outgame not in GAME:
         print(f"Error: Game \'{args.outgame}\' is not supported")
         return -1
-    
+
     if args.combine:
         return (args, translation)
-    
+
     if not translation.has_operation() and not translation.has_reset():
         if args.ingame == args.outgame:
             print(f"Error: Cannot convert to the same game")
             return -1
         if GMT_VERSION[GAME[args.ingame]] == GMT_VERSION[GAME[args.outgame]]:
-            print(f"Error: Conversion is not needed between \'{args.ingame}\' and \'{args.outgame}\'")
+            print(
+                f"Error: Conversion is not needed between \'{args.ingame}\' and \'{args.outgame}\'")
             return -1
-    
+
     return (args, translation)
+
 
 def collect(files, ingame, nosuffix):
     if GMTProperties(GAME[ingame]).version > GMTProperties('YAKUZA_5').version:
-        start_index = -7 # TODO: change these correctly
-        end_index = -4 
+        start_index = -7  # TODO: change these correctly
+        end_index = -4
     else:
         start_index = -7
         end_index = -4
-    
+
     def file_index(name):
         return int(get_basename(gmt)[start_index:end_index])
-    
+
     suf = '' if nosuffix else '-combined'
-    
+
     gmts = []
     cmts = []
     combined = []
-    
+
     for f in files:
         if get_basename(f).endswith('.gmt'):
             gmts.append(f)
@@ -137,7 +158,7 @@ def collect(files, ingame, nosuffix):
                 combined.append((f"{gmt_path}_{i}.gmt", f[0]))
                 print(f"combined {f[1]} files into {gmt_path}_{i}.gmt")
                 i += 1
-    
+
     for cmt in cmts:
         if cmt[start_index:end_index] == '000':
             common = os.path.basename(cmt)[:start_index]
@@ -151,8 +172,9 @@ def collect(files, ingame, nosuffix):
                 combined.append((f"{cmt_path}_{i}.cmt", f[0]))
                 print(f"combined {f[1]} files into {cmt_path}_{i}.cmt")
                 i += 1
-    
+
     return combined
+
 
 def get_data(gmt: Union[str, Tuple[str, bytes]]):
     if type(gmt) is str:
@@ -160,11 +182,13 @@ def get_data(gmt: Union[str, Tuple[str, bytes]]):
     if type(gmt) is tuple:
         return gmt[1]
 
+
 def get_basename(gmt: Union[str, Tuple[str, bytes]]):
     if type(gmt) is str:
         return os.path.basename(gmt)
     if type(gmt) is tuple:
         return gmt[0]
+
 
 def convert_from_url_bytes(argv: List[str], gmt: Union[str, Tuple[str, bytes]], sgmd=None, tgmd=None):
     processed = process_args(parser.parse_args(argv))
@@ -173,10 +197,10 @@ def convert_from_url_bytes(argv: List[str], gmt: Union[str, Tuple[str, bytes]], 
     args, translation = processed
     translation.sourcegmd = sgmd
     translation.targetgmd = tgmd
-    
+
     if type(gmt) is list:
         converted = []
-        
+
         # Setup Hact resetting first
         if translation.resethact:
             translation.reset = False
@@ -188,22 +212,28 @@ def convert_from_url_bytes(argv: List[str], gmt: Union[str, Tuple[str, bytes]], 
                     if get_basename(g).endswith('.gmt'):
                         new_gmt.append(g)
                     elif get_basename(g).endswith('.cmt'):
-                        outpath = get_basename(g) if args.nosuffix else get_basename(g)[:-4] + f"-{args.outgame}.cmt"
-                        converted.append((outpath, reset_camera(g, translation.offset, translation.add_offset, GMTProperties(GAME[args.ingame]).is_dragon_engine)))
+                        outpath = get_basename(g) if args.nosuffix else get_basename(g)[
+                            :-4] + f"-{args.outgame}.cmt"
+                        converted.append((outpath, reset_camera(
+                            g, translation.offset, translation.add_offset, GMTProperties(GAME[args.ingame]).is_dragon_engine)))
                     gmt = new_gmt
             else:
                 translation.reset = True
                 translation.resethact = False
-        
+
         if args.combine:
             return collect(gmt, args.ingame, args.nosuffix)
         for url in gmt:
-            outpath = get_basename(url) if args.nosuffix else get_basename(url)[:-4] + f"-{args.outgame}.gmt"
-            converted.append((outpath, convert(get_data(url), args.ingame, args.outgame, args.motion, translation)))
-        
+            outpath = get_basename(url) if args.nosuffix else get_basename(url)[
+                :-4] + f"-{args.outgame}.gmt"
+            converted.append((outpath, convert(
+                get_data(url), args.ingame, args.outgame, args.motion, translation)))
+
         return converted
-    outpath = get_basename(url) if args.nosuffix else get_basename(url)[:-4] + f"-{args.outgame}.gmt"
+    outpath = get_basename(url) if args.nosuffix else get_basename(url)[
+        :-4] + f"-{args.outgame}.gmt"
     return((outpath, convert(get_data(gmt), args.ingame, args.outgame, args.motion, translation)))
+
 
 if __name__ == "__main__":
     pass
