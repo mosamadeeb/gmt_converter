@@ -40,33 +40,52 @@ If you want to convert an entire folder of GMTs, add the -d flag (or -dr to conv
 
 """
 
-parser = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter)
+parser = argparse.ArgumentParser(
+    description=description, epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument('-ig', '--ingame', action='store', help='source game')
 parser.add_argument('-og', '--outgame', action='store', help='target game')
-parser.add_argument('-i', '--inpath', action='store', help='GMT input name (or input folder path)')
+parser.add_argument('-i', '--inpath', action='store',
+                    help='GMT input name (or input folder path)')
 parser.add_argument('-o', '--outpath', action='store', help='GMT output name')
-parser.add_argument('-mtn', '--motion', action='store_true', help='output GMT will be used in \'motion\' folder (for post-Y5)')
-parser.add_argument('-rst', '--reset', action='store_true', help='reset body position to origin point at the start of the animation')
-parser.add_argument('-rhct', '--resethact', action='store_true', help='reset whole hact scene to position of the input gmt (requires both -i as a single file and -d) [overrides --reset]')
-parser.add_argument('-aoff', '--addoffset', action='store', help='additional height offset for resetting hact scene (for pre-DE hacts) [will be added to scene height]')
+parser.add_argument('-mtn', '--motion', action='store_true',
+                    help='output GMT will be used in \'motion\' folder (for post-Y5)')
+parser.add_argument('-rst', '--reset', action='store_true',
+                    help='reset body position to origin point at the start of the animation')
+parser.add_argument('-rhct', '--resethact', action='store_true',
+                    help='reset whole hact scene to position of the input gmt (requires both -i as a single file and -d) [overrides --reset]')
+parser.add_argument('-aoff', '--addoffset', action='store',
+                    help='additional height offset for resetting hact scene (for pre-DE hacts) [will be added to scene height]')
 
-parser.add_argument('-rp', '--reparent', action='store_true', help='reparent bones for this gmt between models')
-parser.add_argument('-fc', '--face', action='store_true', help='translate face bones for this gmt between models')
-parser.add_argument('-hn', '--hand', action='store_true', help='translate hand bones for this gmt between models')
-parser.add_argument('-bd', '--body', action='store_true', help='translate body (without face or hand) bones for this gmt between models')
-parser.add_argument('-sgmd', '--sourcegmd', action='store', help='source GMD for translation')
-parser.add_argument('-tgmd', '--targetgmd', action='store', help='target GMD for translation')
+parser.add_argument('-rp', '--reparent', action='store_true',
+                    help='reparent bones for this gmt between models')
+parser.add_argument('-fc', '--face', action='store_true',
+                    help='translate face bones for this gmt between models')
+parser.add_argument('-hn', '--hand', action='store_true',
+                    help='translate hand bones for this gmt between models')
+parser.add_argument('-bd', '--body', action='store_true',
+                    help='translate body (without face or hand) bones for this gmt between models')
+parser.add_argument('-sgmd', '--sourcegmd', action='store',
+                    help='source GMD for translation')
+parser.add_argument('-tgmd', '--targetgmd', action='store',
+                    help='target GMD for translation')
 
-parser.add_argument('-d', '--dir', action='store_true', help='the input is a dir')
-parser.add_argument('-dr', '--recursive', action='store_true', help='the input is a dir; recursively convert subfolders')
-parser.add_argument('-ns', '--nosuffix', action='store_true', help='do not add suffixes at the end of converted files')
-parser.add_argument('-sf', '--safe', action='store_true', help='ask before overwriting files')
+parser.add_argument('-d', '--dir', action='store_true',
+                    help='the input is a dir')
+parser.add_argument('-dr', '--recursive', action='store_true',
+                    help='the input is a dir; recursively convert subfolders')
+parser.add_argument('-ns', '--nosuffix', action='store_true',
+                    help='do not add suffixes at the end of converted files')
+parser.add_argument('-sf', '--safe', action='store_true',
+                    help='ask before overwriting files')
 
-parser.add_argument('-cmb', '--combine', action='store_true', help='combine split animations inside a directory (for pre-Y5 hacts) [WILL NOT CONVERT]')
+parser.add_argument('-cmb', '--combine', action='store_true',
+                    help='combine split animations inside a directory (for pre-Y5 hacts) [WILL NOT CONVERT]')
+
 
 def process_args(args):
-    translation = Translation(args.reparent, args.face, args.hand, args.body, args.sourcegmd, args.targetgmd, args.reset, args.resethact, args.addoffset)
-    
+    translation = Translation(args.reparent, args.face, args.hand, args.body,
+                              args.sourcegmd, args.targetgmd, args.reset, args.resethact, args.addoffset)
+
     if not args.inpath:
         if os.path.isdir("input_folder"):
             args.dir = True
@@ -77,39 +96,42 @@ def process_args(args):
             print("Error: Provide an input path with -i or put the files in \"<gmt_converter_path>\\input_folder\\\"")
             os.system('pause')
             return -1
-    
+
     if args.combine:
         collect(args.inpath, args.outpath, args.nosuffix)
         return 0
-    
+
     if not args.ingame:
         args.ingame = input("Enter source game:\n")
     if not args.outgame:
         args.outgame = input("Enter target game:\n")
-    
+
     args.ingame = args.ingame.lower()
     args.outgame = args.outgame.lower()
-    
+
     if args.dir or args.recursive:
         args.dir = True
         if not args.outpath:
             args.outpath = "output_folder"
         if args.inpath.lower() == args.outpath.lower() and args.nosuffix:
-            print("Error: Input path cannot be the same as output path when using --nosuffix with -d or -dr")
+            print(
+                "Error: Input path cannot be the same as output path when using --nosuffix with -d or -dr")
             os.system('pause')
             return -1
     else:
         if not args.outpath:
             if args.nosuffix:
-                print("Error: Provide an output path when using --nosuffix without -d or -dr")
+                print(
+                    "Error: Provide an output path when using --nosuffix without -d or -dr")
                 os.system('pause')
                 return -1
             args.outpath = args.inpath[:-4] + f"-{args.outgame}.gmt"
         if args.inpath.lower() == args.outpath.lower():
-            print("Error: Input path cannot be the same as output path when not using -d or -dr")
+            print(
+                "Error: Input path cannot be the same as output path when not using -d or -dr")
             os.system('pause')
             return -1
-    
+
     if args.ingame not in GAME:
         print(f"Error: Game \'{args.ingame}\' is not supported")
         os.system('pause')
@@ -124,7 +146,8 @@ def process_args(args):
             os.system('pause')
             return -1
         if GMT_VERSION[GAME[args.ingame]] == GMT_VERSION[GAME[args.outgame]]:
-            print(f"Error: Conversion is not needed between \'{args.ingame}\' and \'{args.outgame}\'")
+            print(
+                f"Error: Conversion is not needed between \'{args.ingame}\' and \'{args.outgame}\'")
             os.system('pause')
             return -1
 
@@ -132,7 +155,7 @@ def process_args(args):
         translation.reset = False
         translation.offset = vector_org(args.inpath)
         args.inpath = os.path.dirname(args.inpath)
-    
+
     return (args, translation)
 
 
@@ -148,13 +171,14 @@ def main():
         for r, d, f in os.walk(args.inpath):
             for file in f:
                 gmt_file = os.path.join(r, file)
-                #if not gmt_file.startswith('\"'):
+                # if not gmt_file.startswith('\"'):
                 #    gmt_file = f"\"{gmt_file}\""
                 if args.nosuffix:
                     output_file = os.path.join(args.outpath, file)
                 else:
-                    output_file = os.path.join(args.outpath, file[:-4] + f"-{args.outgame}.gmt")
-                
+                    output_file = os.path.join(
+                        args.outpath, file[:-4] + f"-{args.outgame}.gmt")
+
                 stop = False
                 for g in GAME.keys():
                     if g in gmt_file[-9:-4]:
@@ -162,21 +186,24 @@ def main():
                         break
                 if stop:
                     continue
-                
+
                 if translation.resethact:
                     if gmt_file.endswith('.cmt'):
                         output_file = output_file[:-4] + '.cmt'
-                        is_de = GMTProperties(GAME[args.ingame]).is_dragon_engine
+                        is_de = GMTProperties(
+                            GAME[args.ingame]).is_dragon_engine
                         with open(output_file, 'wb') as g:
-                            g.write(reset_camera(gmt_file, translation.offset, translation.add_offset, is_de))
+                            g.write(reset_camera(
+                                gmt_file, translation.offset, translation.add_offset, is_de))
                             print(f"converted {output_file}")
                         continue
-                
+
                 if not gmt_file.endswith('.gmt'):
                     continue
-                
+
                 if args.safe and os.path.isfile(output_file):
-                    print(f"Output file \"{output_file}\" already exists. Overwrite? (select 's' to stop conversion)")
+                    print(
+                        f"Output file \"{output_file}\" already exists. Overwrite? (select 's' to stop conversion)")
                     result = input("(y/n/s) ").lower()
                     if result != 'y':
                         if result == 's':
@@ -186,7 +213,8 @@ def main():
                         print(f"Skipping \"{output_file}\"...")
                         continue
                 with open(output_file, 'wb') as g:
-                    g.write(convert(gmt_file, args.ingame, args.outgame, args.motion, translation))
+                    g.write(convert(gmt_file, args.ingame,
+                                    args.outgame, args.motion, translation))
                     print(f"converted {output_file}")
             if not args.recursive:
                 break
@@ -198,26 +226,28 @@ def main():
                 print("Stopping operation...")
                 os.system('pause')
                 return
-        #if not args.inpath.startswith('\"'):
+        # if not args.inpath.startswith('\"'):
         #    args.inpath = f"\"{args.inpath}\""
         with open(args.outpath, 'wb') as g:
-            g.write(convert(args.inpath, args.ingame, args.outgame, args.motion, translation))
+            g.write(convert(args.inpath, args.ingame,
+                            args.outgame, args.motion, translation))
             print(f"converted {args.outpath}")
     print("DONE")
+
 
 def collect(path, outpath, nosuffix):
     def file_index(name):
         return int(name[-7:-4])
-    
+
     if not outpath:
         outpath = os.path.join("output_folder", os.path.basename(path))
     if not os.path.isdir(outpath):
         os.mkdir(outpath)
-    
+
     suf = '-combined'
     if nosuffix:
         suf = ''
-    
+
     gmts = []
     cmts = []
     for r, d, f in os.walk(path):
@@ -239,7 +269,7 @@ def collect(path, outpath, nosuffix):
                     gmt.write(f[0])
                 print(f"combined {f[1]} files into {gmt_path}_{i}.gmt")
                 i += 1
-    
+
     for cmt in cmts:
         if cmt[-7:-4] == '000':
             common = os.path.basename(cmt)[:-7]
@@ -251,9 +281,10 @@ def collect(path, outpath, nosuffix):
                     cmt.write(f[0])
                 print(f"combined {f[1]} files into {cmt_path}_{i}.cmt")
                 i += 1
-    
+
     print("DONE")
     os.system('pause')
+
 
 if __name__ == "__main__":
     main()
