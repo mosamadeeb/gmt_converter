@@ -190,11 +190,16 @@ def get_basename(gmt: Union[str, Tuple[str, bytes]]):
         return gmt[0]
 
 
-def convert_from_url_bytes(argv: List[str], gmt: Union[str, Tuple[str, bytes]]):
+def convert_from_url_bytes(argv: List[str], gmt: Union[str, Tuple[str, bytes]], sgmd: Tuple[str, bytes], tgmd: Tuple[str, bytes]):
     processed = process_args(parser.parse_args(argv))
     if type(processed) is int:
         return processed
     args, translation = processed
+
+    if sgmd:
+        translation.sgmd = sgmd
+    if tgmd:
+        translation.tgmd = tgmd
 
     if type(gmt) is list:
         converted = []
