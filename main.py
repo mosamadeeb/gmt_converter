@@ -233,7 +233,7 @@ def convert_from_url_bytes(argv: List[str], gmt: Union[str, Tuple[str, bytes]], 
                 get_data(url), args.ingame, args.outgame, args.motion, translation)))
 
         return converted
-    outpath = get_basename(url) if args.nosuffix else get_basename(url)[
+    outpath = get_basename(gmt) if args.nosuffix else get_basename(gmt)[
         :-4] + f"-{args.outgame}.gmt"
     return((outpath, convert(get_data(gmt), args.ingame, args.outgame, args.motion, translation)))
 
