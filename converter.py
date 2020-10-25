@@ -299,6 +299,7 @@ def old_to_new_bones(bones: List[Bone], src_new, dst_de, motion, gmd_path) -> Li
                         if gmd_center:
                             x, y, z, _ = gmd_center.global_pos
                     c_pos = c_pos[0]
+                    c_pos.neutralize()
                     c_pos.values = list(
                         map(lambda p: (p[0] - x, p[1] - y, p[2] - z), c_pos.values))
                     center.curves[0] = c_pos
