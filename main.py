@@ -6,7 +6,7 @@ from typing import List, Union, Tuple
 import requests
 
 from .structure.version import GAME, GMT_VERSION, GMTProperties
-from .converter import convert, combine, reset_camera, vector_org, Translation
+from .converter import convert, combine, reset_camera, vector_org, Translation, get_basename, get_data
 
 description = """
 A tool to convert animations between Yakuza games
@@ -152,7 +152,7 @@ def collect(files, ingame, nosuffix):
             files = []
             common_files = [f for f in gmts if common in get_basename(f)]
             for f in sorted(common_files, key=file_index):
-                files.append(get_data(f))
+                files.append(f)
             i = 0
             for f in combine(files, 'gmt'):
                 combined.append((f"{gmt_path}_{i}.gmt", f[0]))
@@ -166,7 +166,7 @@ def collect(files, ingame, nosuffix):
             files = []
             common_files = [f for f in cmts if common in get_basename(f)]
             for f in sorted(common_files, key=file_index):
-                files.append(get_data(f))
+                files.append(f)
             i = 0
             for f in combine(files, 'cmt'):
                 combined.append((f"{cmt_path}_{i}.cmt", f[0]))
@@ -176,20 +176,6 @@ def collect(files, ingame, nosuffix):
     return combined
 
 
-def get_data(gmt: Union[str, Tuple[str, bytes]]):
-    if type(gmt) is str:
-        return gmt
-    if type(gmt) is tuple:
-        return gmt[1]
-
-
-def get_basename(gmt: Union[str, Tuple[str, bytes]]):
-    if type(gmt) is str:
-        return os.path.basename(gmt)
-    if type(gmt) is tuple:
-        return gmt[0]
-
-
 def convert_from_url_bytes(argv: List[str], gmt: Union[str, Tuple[str, bytes]], sgmd: Tuple[str, bytes], tgmd: Tuple[str, bytes]):
     processed = process_args(parser.parse_args(argv))
     if type(processed) is int:
@@ -197,9 +183,9 @@ def convert_from_url_bytes(argv: List[str], gmt: Union[str, Tuple[str, bytes]], 
     args, translation = processed
 
     if sgmd:
-        translation.sgmd = sgmd
+        translation.sourcegmd = sgmd
     if tgmd:
-        translation.tgmd = tgmd
+        translation.targetgmd = tgmd
 
     if type(gmt) is list:
         converted = []
@@ -230,17 +216,17 @@ def convert_from_url_bytes(argv: List[str], gmt: Union[str, Tuple[str, bytes]], 
             outpath = get_basename(url) if args.nosuffix else get_basename(url)[
                 :-4] + f"-{args.outgame}.gmt"
             converted.append((outpath, convert(
-                get_data(url), args.ingame, args.outgame, args.motion, translation)))
+                url, args.ingame, args.outgame, args.motion, translation)))
 
         return converted
 
     if not get_basename(gmt).endswith('.gmt'):
-        Print("Error: file provided is not a GMT")
+        print("Error: file provided is not a GMT")
         return ('', b'')
 
     outpath = get_basename(gmt) if args.nosuffix else get_basename(gmt)[
         :-4] + f"-{args.outgame}.gmt"
-    return((outpath, convert(get_data(gmt), args.ingame, args.outgame, args.motion, translation)))
+    return((outpath, convert(gmt, args.ingame, args.outgame, args.motion, translation)))
 
 
 if __name__ == "__main__":

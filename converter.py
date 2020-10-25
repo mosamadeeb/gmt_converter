@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union, Tuple
 from copy import deepcopy
 from os.path import basename
 
@@ -43,11 +43,26 @@ class Translation:
     def has_reset(self):
         return self.reset or self.resethact
 
+
+def get_data(gmt: Union[str, Tuple[str, bytes]]):
+    if type(gmt) is str:
+        return gmt
+    if type(gmt) is tuple:
+        return gmt[1]
+
+
+def get_basename(gmt: Union[str, Tuple[str, bytes]]):
+    if type(gmt) is str:
+        return basename(gmt)
+    if type(gmt) is tuple:
+        return gmt[0]
+
+
 # returns converted file as bytearray
 
 
 def convert(path, src_game, dst_game, motion, translation) -> bytearray:
-    in_file = read_file(path)
+    in_file = read_file(get_data(path))
     src_gmt = GMTProperties(GAME[src_game])
     dst_gmt = GMTProperties(GAME[dst_game])
 
@@ -294,7 +309,7 @@ def old_to_new_bones(bones: List[Bone], src_new, dst_de, motion, gmd_path) -> Li
                 if len(c_pos):
                     x, y, z = (0.0, 1.14, 0.0)
                     if gmd_path:
-                        gmd = read_gmd_bones(gmd_path)
+                        gmd = read_gmd_bones(get_data(gmd_path))
                         gmd_center, _ = find_gmd_bone('center', gmd)
                         if gmd_center:
                             x, y, z, _ = gmd_center.global_pos
@@ -331,7 +346,7 @@ def old_to_new_bones(bones: List[Bone], src_new, dst_de, motion, gmd_path) -> Li
 
 def finger_pos(bones: List[Bone], gmd_path=None) -> List[Bone]:
     if gmd_path:
-        gmd = read_gmd_bones(gmd_path)
+        gmd = read_gmd_bones(get_data(gmd_path))
 
     for finger in [b for b in bones if b.name.string() in HAND.values()]:
         index = bones.index(finger)
@@ -427,8 +442,8 @@ def reset_vector(bones: List[Bone], new_bones, is_de=True, motion=False, offset=
 # TODO: change this to be flexible: choose a combination of face, hands, body, or all of them
 # this should be called after re-parenting has been done
 def translate_face_bones(anm_bones: List[Bone], source, target):
-    face_s, jaw_s = get_face_bones(read_gmd_bones(source))
-    face_t, jaw_t = get_face_bones(read_gmd_bones(target))
+    face_s, jaw_s = get_face_bones(read_gmd_bones(get_data(source)))
+    face_t, jaw_t = get_face_bones(read_gmd_bones(get_data(target)))
 
     for s, t in zip((face_s, jaw_s), (face_t, jaw_t)):
         for b_s in s.children:
@@ -464,8 +479,8 @@ def translate_face_bones(anm_bones: List[Bone], source, target):
 
 
 def transform_bones(anm_bones: List[Bone], new_bones, is_de, translation):
-    source_gmd = read_gmd_bones(translation.sourcegmd)
-    target_gmd = read_gmd_bones(translation.targetgmd)
+    source_gmd = read_gmd_bones(get_data(translation.sourcegmd))
+    target_gmd = read_gmd_bones(get_data(translation.targetgmd))
     # TODO: now loop over all bones to check for their children
     # if you find a common child (after the gmt rename, be sure to update the names),
     # reparent its positions and rotations like you did with ketu and kosi
@@ -700,9 +715,9 @@ def combine(paths, ext):
     files = []
     i = 0
     if ext == 'gmt':
-        gmt_file = read_file(paths[0])
+        gmt_file = read_file(get_data(paths[0]))
         for path in paths[1:]:
-            gmt_next = read_file(path)
+            gmt_next = read_file(get_data(path))
             i += 1
             result = gmt_file.merge(gmt_next)
             if result == -1:
@@ -715,9 +730,9 @@ def combine(paths, ext):
 
     elif ext == 'cmt':
         files = []
-        cmt_file = read_cmt_file(paths[0])
+        cmt_file = read_cmt_file(get_data(paths[0]))
         for path in paths[1:]:
-            cmt_next = read_cmt_file(path)
+            cmt_next = read_cmt_file(get_data(path))
             result = cmt_file.merge(cmt_next)
             if result == -1:
                 files.append(
@@ -733,7 +748,7 @@ def combine(paths, ext):
 
 def vector_org(path, bones=None):
     if not bones:
-        gmt = read_file(path)
+        gmt = read_file(get_data(path))
         bones = gmt.animations[0].bones
 
     vector = [b for b in bones if 'vector' in b.name.string()]
@@ -765,7 +780,7 @@ def vector_org(path, bones=None):
 
 
 def reset_camera(path, offset, add_offset, is_de):
-    cmt = read_cmt_file(path)
+    cmt = read_cmt_file(get_data(path))
     height = add_offset
     if not is_de:
         height += 1.14
