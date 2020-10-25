@@ -226,13 +226,18 @@ def convert_from_url_bytes(argv: List[str], gmt: Union[str, Tuple[str, bytes]], 
 
         if args.combine:
             return collect(gmt, args.ingame, args.nosuffix)
-        for url in gmt:
+        for url in [g for g in gmt if get_basename(g).endswith('.gmt')]:
             outpath = get_basename(url) if args.nosuffix else get_basename(url)[
                 :-4] + f"-{args.outgame}.gmt"
             converted.append((outpath, convert(
                 get_data(url), args.ingame, args.outgame, args.motion, translation)))
 
         return converted
+
+    if not get_basename(gmt).endswith('.gmt'):
+        Print("Error: file provided is not a GMT")
+        return ('', b'')
+
     outpath = get_basename(gmt) if args.nosuffix else get_basename(gmt)[
         :-4] + f"-{args.outgame}.gmt"
     return((outpath, convert(get_data(gmt), args.ingame, args.outgame, args.motion, translation)))
