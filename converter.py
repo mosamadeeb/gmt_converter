@@ -359,7 +359,7 @@ def finger_pos(bones: List[Bone], gmd_path=None) -> List[Bone]:
                 gmd_finger = gmd_finger[0]
                 x, y, z, _ = gmd_finger.local_pos
             else:
-                x, y, z = KIRYU_HAND[b.name.string()]
+                x, y, z = KIRYU_HAND[finger.name.string()]
             pos = new_pos_curve()
             pos.values = [(x, y, z)]
             finger.curves.insert(0, pos)
