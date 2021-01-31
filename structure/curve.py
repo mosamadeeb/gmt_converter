@@ -60,24 +60,9 @@ class Curve:
             self.__neutralize_rot()
 
     def add_pos(self, pos):
-        if not self.curve_format == CurveFormat.POS_VEC3:
-            if 'X' in self.curve_format.name:
-                self.values = [[v[0], 0.0, 0.0] for v in self.values]
-            elif 'Y' in self.curve_format.name:
-                self.values = [[0.0, v[0], 0.0] for v in self.values]
-            elif 'Z' in self.curve_format.name:
-                self.values = [[0.0, 0.0, v[0]] for v in self.values]
-            self.curve_format = CurveFormat.POS_VEC3
-        if not pos.curve_format == CurveFormat.POS_VEC3:
-            if 'X' in pos.curve_format.name:
-                pos.values = [[v[0], 0.0, 0.0] for v in pos.values]
-            elif 'Y' in pos.curve_format.name:
-                pos.values = [[0.0, v[0], 0.0] for v in pos.values]
-            elif 'Z' in pos.curve_format.name:
-                pos.values = [[0.0, 0.0, v[0]] for v in pos.values]
-            pos.curve_format = CurveFormat.POS_VEC3
-        # TODO: should use map() with lambda instead
-        return [[v[0] + a[0], v[1] + a[1], v[2] + a[2]] for v, a in zip(self.values, pos.values)]
+        self.neutralize()
+        pos.neutralize()
+        return list(map(lambda v, a: [v[0] + a[0], v[1] + a[1], v[2] + a[2]], self.values, pos.values))
 
     def to_horizontal(self):
         new_curve = self

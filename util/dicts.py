@@ -31,9 +31,7 @@ NEW_BONES = {
     # actual ude1_r2_n should be kata_pad_r_sup, but they are in different places
     # 'ude1_l2_n': 'waki_l_sup',
     'ude3_r2_n': 'ude2_twist_r_sup',
-    'ude3_l2_n': 'ude2_twist_l_sup',
-    'buki_r_n': 'buki1_r_n',
-    'buki_l_n': 'buki1_l_n'
+    'ude3_l2_n': 'ude2_twist_l_sup'
 }
 
 HAND = {
@@ -72,7 +70,12 @@ FACE.update(new_face('lip_top_side', 'lip_side', ['r', 'l']))
 FACE.update(new_face('lip_btm', 'lip_btm', ['r', 'l', 'c']))
 FACE.update(new_face('lip_btm_side', 'lip_side2', ['r', 'l']))
 
-DE_FACE = {
+NEW_BONES.update(HAND)
+NEW_BONES.update(FACE)
+
+OLD_BONES = dict(map(reversed, NEW_BONES.items()))
+
+DE_BONES = {
     '_lip_top_c_n': '_lip_top1_c_n',
     '_lip_top_r_n': '_lip_top1_r_n',
     '_lip_top_l_n': '_lip_top1_l_n',
@@ -82,14 +85,12 @@ DE_FACE = {
     '_lip_btm_r_n': '_lip_btm1_r_n',
     '_lip_btm_l_n': '_lip_btm1_l_n',
     '_lip_side2_r_n': '_lip_btm_side1_r_n',
-    '_lip_side2_l_n': '_lip_btm_side1_l_n'
+    '_lip_side2_l_n': '_lip_btm_side1_l_n',
+    'buki_r_n': 'buki1_r_n',
+    'buki_l_n': 'buki1_l_n'
 }
 
-NEW_BONES.update(HAND)
-NEW_BONES.update(FACE)
-
-OLD_BONES = dict(map(reversed, NEW_BONES.items()))
-DE_FACE_OLD = dict(map(reversed, DE_FACE.items()))
+DE_OLD_BONES = dict(map(reversed, DE_BONES.items()))
 
 """
 PATTERN = [

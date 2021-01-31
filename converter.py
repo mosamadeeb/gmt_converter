@@ -105,7 +105,7 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
             # rename to de
             for anm in in_file.animations:
                 for bone in anm.bones:
-                    bone.name.update(DE_FACE.get(
+                    bone.name.update(DE_BONES.get(
                         bone.name.string(), bone.name.string()))
         """
         # add scale bone
@@ -118,7 +118,7 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
             for bone in anm.bones:
                 bone.name.update(OLD_BONES.get(
                     bone.name.string(), bone.name.string()))
-                bone.name.update(DE_FACE_OLD.get(
+                bone.name.update(DE_OLD_BONES.get(
                     bone.name.string(), bone.name.string()))
 
     if translation.reset:
@@ -129,6 +129,16 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
         for anm in in_file.animations:
             anm.bones = reset_vector(anm.bones, src_gmt.new_bones, is_de=src_gmt.is_dragon_engine,
                                      offset=translation.offset, add_offset=translation.add_offset)
+
+    if src_gmt.is_dragon_engine:
+        if not dst_gmt.is_dragon_engine:
+            # convert values in kosi to be direct child of center
+            for anm in in_file.animations:
+                anm.bones = de_to_old_kosi(anm.bones)
+    elif dst_gmt.is_dragon_engine:
+        # convert values in kosi to be direct child of ketu
+        for anm in in_file.animations:
+            anm.bones = old_to_de_kosi(anm.bones)
 
     if src_gmt.new_bones:
         if not dst_gmt.new_bones or (src_gmt.is_dragon_engine and not dst_gmt.is_dragon_engine):
@@ -151,16 +161,6 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
         # Adds position curves to fingers that don't have them using the default values in dicts.KIRYU_HAND
         for anm in in_file.animations:
             anm.bones = finger_pos(anm.bones, translation.targetgmd)
-
-    if src_gmt.is_dragon_engine:
-        if not dst_gmt.is_dragon_engine:
-            # convert values in kosi to be direct child of center
-            for anm in in_file.animations:
-                anm.bones = de_to_old_kosi(anm.bones)
-    elif dst_gmt.is_dragon_engine:
-        # convert values in kosi to be direct child of ketu
-        for anm in in_file.animations:
-            anm.bones = old_to_de_kosi(anm.bones)
 
     if translation.has_operation():
         if not translation.sourcegmd or not translation.targetgmd:
@@ -214,6 +214,7 @@ def old_to_de_kosi(bones: List[Bone]) -> List[Bone]:
     for ke, ko in zip(ketu.rotation_curves(), kosi.rotation_curves()):
         i = 0
         ko.neutralize()
+        ko.curve_format = FLOAT_TO_SCALED.get(ko.curve_format, ko.curve_format)
         for f in ko.graph.keyframes:
             kf = f
             if kf not in ke.graph.keyframes:
@@ -269,6 +270,7 @@ def de_to_old_kosi(bones: List[Bone]) -> List[Bone]:
     for ke, ko in zip(ketu.rotation_curves(), kosi.rotation_curves()):
         i = 0
         ko.neutralize()
+        ko.curve_format = FLOAT_TO_SCALED.get(ko.curve_format, ko.curve_format)
         for f in ko.graph.keyframes:
             kf = f
             if kf not in ke.graph.keyframes:
@@ -302,6 +304,8 @@ def old_to_new_bones(bones: List[Bone], src_new, dst_de, motion, gmd_path) -> Li
             vector.name = Name("vector_c_n")
             v_index = -1
 
+        ketu, k_index = find_bone('ketu', bones)
+
         if dst_de:
             # Use only vector
             if not motion:
@@ -321,9 +325,13 @@ def old_to_new_bones(bones: List[Bone], src_new, dst_de, motion, gmd_path) -> Li
                     vector.curves = center.curves
                     center.curves = []
             elif not src_new:
-                vector.curves = center.curves
-                center.curves = [c.to_vertical()
-                                 for c in deepcopy(center.position_curves())]
+                vector.curves = [c.to_horizontal() for c in deepcopy(
+                    center.position_curves())] + center.rotation_curves()
+
+                ketu.curves = [c.to_vertical() for c in deepcopy(
+                    center.position_curves())] + ketu.rotation_curves()
+
+                center.curves = [new_pos_curve()]
 
         else:
             # Use both center and vector
@@ -490,11 +498,11 @@ def transform_bones(anm_bones: List[Bone], new_bones, is_de, translation):
         if new_bones:
             bone.name = NEW_BONES.get(bone.name, bone.name)
             if is_de:
-                bone.name = DE_FACE.get(bone.name, bone.name)
+                bone.name = DE_BONES.get(bone.name, bone.name)
         else:
             bone.name = OLD_BONES.get(bone.name, bone.name)
             if is_de:
-                bone.name = DE_FACE_OLD.get(bone.name, bone.name)
+                bone.name = DE_OLD_BONES.get(bone.name, bone.name)
         return bone
 
     source_gmd = list(map(lambda b: rename_bone(b), source_gmd))
