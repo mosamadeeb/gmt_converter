@@ -113,6 +113,16 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
             anm.bones = reset_vector(anm.bones, src_gmt.new_bones, is_de=src_gmt.is_dragon_engine,
                                      offset=translation.offset, add_offset=translation.add_offset)
 
+    if src_gmt.is_dragon_engine:
+        if not dst_gmt.is_dragon_engine:
+            # convert values in kosi to be direct child of center
+            for anm in in_file.animations:
+                anm.bones = de_to_old_kosi(anm.bones)
+    elif dst_gmt.is_dragon_engine:
+        # convert values in kosi to be direct child of ketu
+        for anm in in_file.animations:
+            anm.bones = old_to_de_kosi(anm.bones)
+
     if src_gmt.new_bones:
         if not dst_gmt.new_bones or (src_gmt.is_dragon_engine and not dst_gmt.is_dragon_engine):
             # convert new bones to old bones (remove _c_n and add vector (and sync) to center)
@@ -137,16 +147,6 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
         #    translation.targetgmd = input("Target GMD path: ")
         for anm in in_file.animations:
             anm.bones = finger_pos(anm.bones, translation.targetgmd)
-
-    if src_gmt.is_dragon_engine:
-        if not dst_gmt.is_dragon_engine:
-            # convert values in kosi to be direct child of center
-            for anm in in_file.animations:
-                anm.bones = de_to_old_kosi(anm.bones)
-    elif dst_gmt.is_dragon_engine:
-        # convert values in kosi to be direct child of ketu
-        for anm in in_file.animations:
-            anm.bones = old_to_de_kosi(anm.bones)
 
     if translation.has_operation():
         if not translation.sourcegmd or not translation.targetgmd:
@@ -291,6 +291,8 @@ def old_to_new_bones(bones: List[Bone], src_new, dst_de, motion, gmd_path) -> Li
             vector.name = Name("vector_c_n")
             v_index = -1
 
+        ketu, k_index = find_bone('ketu', bones)
+
         if dst_de:
             # Use only vector
             if not motion:
@@ -310,9 +312,13 @@ def old_to_new_bones(bones: List[Bone], src_new, dst_de, motion, gmd_path) -> Li
                     vector.curves = center.curves
                     center.curves = []
             elif not src_new:
-                vector.curves = center.curves
-                center.curves = [c.to_vertical()
-                                 for c in deepcopy(center.position_curves())]
+                vector.curves = [c.to_horizontal() for c in deepcopy(
+                    center.position_curves())] + center.rotation_curves()
+
+                ketu.curves = [c.to_vertical() for c in deepcopy(
+                    center.position_curves())] + ketu.rotation_curves()
+
+                center.curves = [new_pos_curve()]
 
         else:
             # Use both center and vector
