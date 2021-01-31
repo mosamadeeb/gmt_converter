@@ -201,7 +201,7 @@ def old_to_de_kosi(bones: List[Bone]) -> List[Bone]:
     for ke, ko in zip(ketu.rotation_curves(), kosi.rotation_curves()):
         i = 0
         ko.neutralize()
-        ko.curve_format = FLOAT_TO_SCALED.get(ko.curve_format)
+        ko.curve_format = FLOAT_TO_SCALED.get(ko.curve_format, ko.curve_format)
         for f in ko.graph.keyframes:
             kf = f
             if kf not in ke.graph.keyframes:
@@ -257,7 +257,7 @@ def de_to_old_kosi(bones: List[Bone]) -> List[Bone]:
     for ke, ko in zip(ketu.rotation_curves(), kosi.rotation_curves()):
         i = 0
         ko.neutralize()
-        ko.curve_format = SCALED_TO_FLOAT.get(ko.curve_format)
+        ko.curve_format = SCALED_TO_FLOAT.get(ko.curve_format, ko.curve_format)
         for f in ko.graph.keyframes:
             kf = f
             if kf not in ke.graph.keyframes:
