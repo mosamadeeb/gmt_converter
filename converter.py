@@ -88,7 +88,7 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
             # rename to de
             for anm in in_file.animations:
                 for bone in anm.bones:
-                    bone.name.update(DE_FACE.get(
+                    bone.name.update(DE_BONES.get(
                         bone.name.string(), bone.name.string()))
         """
         # add scale bone
@@ -101,7 +101,7 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
             for bone in anm.bones:
                 bone.name.update(OLD_BONES.get(
                     bone.name.string(), bone.name.string()))
-                bone.name.update(DE_FACE_OLD.get(
+                bone.name.update(DE_OLD_BONES.get(
                     bone.name.string(), bone.name.string()))
 
     if translation.reset:
@@ -481,11 +481,11 @@ def transform_bones(anm_bones: List[Bone], new_bones, is_de, translation):
         if new_bones:
             bone.name = NEW_BONES.get(bone.name, bone.name)
             if is_de:
-                bone.name = DE_FACE.get(bone.name, bone.name)
+                bone.name = DE_BONES.get(bone.name, bone.name)
         else:
             bone.name = OLD_BONES.get(bone.name, bone.name)
             if is_de:
-                bone.name = DE_FACE_OLD.get(bone.name, bone.name)
+                bone.name = DE_OLD_BONES.get(bone.name, bone.name)
         return bone
 
     source_gmd = list(map(lambda b: rename_bone(b), source_gmd))
