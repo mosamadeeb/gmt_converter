@@ -7,7 +7,7 @@ from structure.version import GAME, GMT_VERSION, GMTProperties
 from converter import convert, combine, reset_camera, vector_org, Translation
 
 description = """
-GMT Converter v0.5.2
+GMT Converter v0.5.3
 A tool to convert animations between Yakuza games
 Currently supported Games:
   - Yakuza 0:            y0
@@ -82,10 +82,13 @@ parser.add_argument('-sf', '--safe', action='store_true',
 parser.add_argument('-cmb', '--combine', action='store_true',
                     help='combine split animations inside a directory (for pre-Y5 hacts) [WILL NOT CONVERT]')
 
+parser.add_argument('-sp', '--speed', action='store',
+                    help='factor of the animations speed [2 will double the speed, 1/2 will change it to half the speed]')
+
 
 def process_args(args):
     translation = Translation(args.reparent, args.face, args.hand, args.body,
-                              args.sourcegmd, args.targetgmd, args.reset, args.resethact, args.addoffset)
+                              args.sourcegmd, args.targetgmd, args.reset, args.resethact, args.addoffset, args.speed)
 
     if not args.inpath:
         if os.path.isdir("input_folder"):
@@ -93,7 +96,7 @@ def process_args(args):
             args.inpath = "\"input_folder\""
         else:
             print("usage: gmt_converter.exe [-h] [-ig INGAME] [-og OUTGAME] [-i INPATH] [-o OUTPATH] [-mtn] [-rst] [-rhct] [-rp] [-fc] [-hn] [-bd] \
-                                          [-sgmd SOURCEGMD] [-tgmd TARGETGMD] [-d] [-dr] [-ns] [-sf] [-cmb]\n")
+                                          [-sgmd SOURCEGMD] [-tgmd TARGETGMD] [-d] [-dr] [-ns] [-sf] [-cmb] [-sp SPEED]\n")
             print("Error: Provide an input path with -i or put the files in \"<gmt_converter_path>\\input_folder\\\"")
             os.system('pause')
             return -1
@@ -141,7 +144,7 @@ def process_args(args):
         print(f"Error: Game \'{args.outgame}\' is not supported")
         os.system('pause')
         return -1
-    if not translation.has_operation() and not translation.has_reset():
+    if not translation.has_operation() and not translation.has_reset() and not translation.has_speed():
         if args.ingame == args.outgame:
             print(f"Error: Cannot convert to the same game")
             os.system('pause')

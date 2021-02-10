@@ -22,7 +22,7 @@ from structure.version import *
 
 
 class Translation:
-    def __init__(self, rp: bool, fc: bool, hn: bool, bd: bool, sgmd: str, tgmd: str, rst: bool, rhct: bool, aoff: float):
+    def __init__(self, rp: bool, fc: bool, hn: bool, bd: bool, sgmd: str, tgmd: str, rst: bool, rhct: bool, aoff: float, sp: int):
         self.reparent = rp
         self.face = fc
         self.hand = hn
@@ -35,11 +35,26 @@ class Translation:
         self.offset = (0, 0, 0)
         self.add_offset = float(aoff) if aoff else 0.0
 
+        self.speed = 1
+        self.speed_slowmo = False
+
+        if sp:
+            if "/" in sp:
+                self.speed = int(sp[2:])
+                self.speed_slowmo = True
+            else:
+                self.speed = int(sp)
+            if self.speed < 1:
+                self.speed = 1
+
     def has_operation(self):
         return self.reparent or self.face or self.hand or self.body
 
     def has_reset(self):
         return self.reset or self.resethact
+
+    def has_speed(self):
+        return self.speed != 1
 
 # returns converted file as bytearray
 
@@ -157,6 +172,11 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
         for anm in in_file.animations:
             anm.bones = transform_bones(
                 anm.bones, dst_gmt.new_bones, dst_gmt.is_dragon_engine, translation)
+
+    if translation.speed != 1:
+        for anm in in_file.animations:
+            anm.bones = change_speed(
+                anm.bones, translation.speed, translation.speed_slowmo)
 
     """
     for b in in_file.animations[0].bones:
@@ -793,3 +813,24 @@ def reset_camera(path, offset, add_offset, is_de):
             data.pos_z -= offset[2]
 
     return write_cmt_file(cmt, cmt.header.version)
+
+
+def change_speed(bones, speed, slowmo):
+    if not slowmo:
+        for bone in bones:
+            for curve in bone.curves:
+                if len(curve.values) > 1:
+                    last_value = curve.values[-1]
+                    last_key = curve.graph.keyframes[-1]
+                    curve.values = curve.values[:-1][::speed] + [last_value]
+                    curve.graph.keyframes = curve.graph.keyframes[:-1][::speed] + [
+                        last_key]
+                    curve.graph.keyframes = list(
+                        map(lambda x: x // speed, curve.graph.keyframes))
+    else:
+        for bone in bones:
+            for curve in bone.curves:
+                curve.graph.keyframes = list(
+                    map(lambda x: x * speed, curve.graph.keyframes))
+
+    return bones
