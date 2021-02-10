@@ -83,10 +83,13 @@ parser.add_argument('-sf', '--safe', action='store_true',
 parser.add_argument('-cmb', '--combine', action='store_true',
                     help='combine split animations inside a directory (for pre-Y5 hacts) [WILL NOT CONVERT]')
 
+parser.add_argument('-sp', '--speed', action='store',
+                    help='factor of the animations speed [2 will double the speed, 1/2 will change it to half the speed]')
+
 
 def process_args(args):
     translation = Translation(args.reparent, args.face, args.hand, args.body,
-                              args.sourcegmd, args.targetgmd, args.reset, args.resethact, args.addoffset)
+                              args.sourcegmd, args.targetgmd, args.reset, args.resethact, args.addoffset, args.speed)
 
     if not args.ingame:
         # This should not happen as the bot should ask for this before accessing the converter
@@ -110,7 +113,7 @@ def process_args(args):
     if args.combine:
         return (args, translation)
 
-    if not translation.has_operation() and not translation.has_reset():
+    if not translation.has_operation() and not translation.has_reset() and not translation.has_speed():
         if args.ingame == args.outgame:
             print(f"Error: Cannot convert to the same game")
             return -1
