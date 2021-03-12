@@ -93,12 +93,13 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
                             if c.curve_format in SCALED_TO_FLOAT:
                                 c.curve_format = SCALED_TO_FLOAT[c.curve_format]
 
-    if dst_gmt.new_bones:
-        # rename to new
-        for anm in in_file.animations:
-            for bone in anm.bones:
-                bone.name.update(NEW_BONES.get(
-                    bone.name.string(), bone.name.string()))
+    if src_gmt < dst_gmt:
+        if (not src_gmt.new_bones) and dst_gmt.new_bones:
+            # rename to new
+            for anm in in_file.animations:
+                for bone in anm.bones:
+                    bone.name.update(NEW_BONES.get(
+                        bone.name.string(), bone.name.string()))
         if dst_gmt.is_dragon_engine:
             # rename to de
             for anm in in_file.animations:
@@ -112,12 +113,16 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
                 anm.bones = add_scale_bone(anm.bones, anm.graphs)
         """
     else:
-        for anm in in_file.animations:
-            for bone in anm.bones:
-                bone.name.update(OLD_BONES.get(
-                    bone.name.string(), bone.name.string()))
-                bone.name.update(DE_OLD_BONES.get(
-                    bone.name.string(), bone.name.string()))
+        if src_gmt.is_dragon_engine:
+            for anm in in_file.animations:
+                for bone in anm.bones:
+                    bone.name.update(DE_OLD_BONES.get(
+                        bone.name.string(), bone.name.string()))
+        if (not dst_gmt.new_bones) and src_gmt.new_bones:
+            for anm in in_file.animations:
+                for bone in anm.bones:
+                    bone.name.update(OLD_BONES.get(
+                        bone.name.string(), bone.name.string()))
 
     if translation.reset:
         for anm in in_file.animations:
@@ -171,7 +176,7 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
             translation.targetgmd = input("Target GMD path: ")
         for anm in in_file.animations:
             anm.bones = transform_bones(
-                anm.bones, dst_gmt.new_bones, dst_gmt.is_dragon_engine, translation)
+                anm.bones, src_gmt, dst_gmt, translation)
 
     if translation.speed != 1:
         for anm in in_file.animations:
@@ -495,27 +500,13 @@ def translate_face_bones(anm_bones: List[Bone], source, target):
     return anm_bones
 
 
-def transform_bones(anm_bones: List[Bone], new_bones, is_de, translation):
+def transform_bones(anm_bones: List[Bone], src_props, dst_props, translation):
     source_gmd = read_gmd_bones(translation.sourcegmd)
     target_gmd = read_gmd_bones(translation.targetgmd)
     # TODO: now loop over all bones to check for their children
     # if you find a common child (after the gmt rename, be sure to update the names),
     # reparent its positions and rotations like you did with ketu and kosi
     # then accordingly, reparent its children too etc
-
-    def rename_bone(bone):
-        if new_bones:
-            bone.name = NEW_BONES.get(bone.name, bone.name)
-            if is_de:
-                bone.name = DE_BONES.get(bone.name, bone.name)
-        else:
-            bone.name = OLD_BONES.get(bone.name, bone.name)
-            if is_de:
-                bone.name = DE_OLD_BONES.get(bone.name, bone.name)
-        return bone
-
-    source_gmd = list(map(lambda b: rename_bone(b), source_gmd))
-    #target_gmd = list(map(lambda b: rename_bone(b), target_gmd))
 
     if translation.reparent:
         """
@@ -666,11 +657,11 @@ def transform_bones(anm_bones: List[Bone], new_bones, is_de, translation):
             pos_curve.values = list(map(lambda f:
                                         [f[0] + s_pos[0] + t_pos[0],
                                          f[1] + s_pos[1] + t_pos[1],
-                                            f[2] + s_pos[2] + t_pos[2]], pos_curve.values))
+                                         f[2] + s_pos[2] + t_pos[2]], pos_curve.values))
 
             anm_bones[gmt_index].curves[0] = deepcopy(pos_curve)
 
-        if 'face' in start and is_de:
+        if 'face' in start and src_props < dst_props and dst_props.is_dragon_engine:
             for side_name in ['_lip_side_r_n', '_lip_side_l_n']:
                 side_gmt = Bone()
                 side_gmt.name = Name(side_name)
@@ -708,7 +699,7 @@ def transform_bones(anm_bones: List[Bone], new_bones, is_de, translation):
                 anm_bones.append(side_gmt)
 
     if translation.face:
-        if new_bones:
+        if dst_props.new_bones:
             translate('face_c_n')
         else:
             translate('face')
@@ -718,7 +709,7 @@ def transform_bones(anm_bones: List[Bone], new_bones, is_de, translation):
         translate('ude3_l_n')
 
     if translation.body:
-        if new_bones:
+        if dst_props.new_bones:
             translate('center_c_n', ['face_c_n', 'ude3_r_n', 'ude3_l_n'])
         else:
             translate('center', ['face', 'ude3_r_n', 'ude3_l_n'])

@@ -74,3 +74,21 @@ class GMTProperties:
             self.context = Context.HACT
         elif context == 1:
             self.context = Context.MOTION
+
+    def __lt__(self, other):
+        return self.version < other.version or (not self.is_dragon_engine and other.is_dragon_engine)
+
+    def __le__(self, other):
+        return self.__lt__(other) or self.__eg__(other)
+
+    def __eq__(self, other):
+        return self.version == other.version and self.new_bones == other.new_bones and self.is_dragon_engine == other.is_dragon_engine
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __gt__(self, other):
+        return not self.__le__(other)
+
+    def __ge__(self, other):
+        return not self.__lt__(other)
