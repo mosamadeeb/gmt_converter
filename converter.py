@@ -47,6 +47,9 @@ class Translation:
             if self.speed < 1:
                 self.speed = 1
 
+    def has_anything(self):
+        return self.has_operation() or self.has_reset() or self.has_speed()
+
     def has_operation(self):
         return self.reparent or self.face or self.hand or self.body
 

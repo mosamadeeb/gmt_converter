@@ -95,9 +95,8 @@ def process_args(args):
             args.dir = True
             args.inpath = "\"input_folder\""
         else:
-            print("usage: gmt_converter.exe [-h] [-ig INGAME] [-og OUTGAME] [-i INPATH] [-o OUTPATH] [-mtn] [-rst] [-rhct] [-rp] [-fc] [-hn] [-bd] \
-                                          [-sgmd SOURCEGMD] [-tgmd TARGETGMD] [-d] [-dr] [-ns] [-sf] [-cmb] [-sp SPEED]\n")
-            print("Error: Provide an input path with -i or put the files in \"<gmt_converter_path>\\input_folder\\\"")
+            parser.print_usage()
+            print("\nError: Provide an input path with -i or put the files in \"<gmt_converter_path>\\input_folder\\\"")
             os.system('pause')
             return -1
 
@@ -144,7 +143,7 @@ def process_args(args):
         print(f"Error: Game \'{args.outgame}\' is not supported")
         os.system('pause')
         return -1
-    if not translation.has_operation() and not translation.has_reset() and not translation.has_speed():
+    if not translation.has_anything():
         if args.ingame == args.outgame:
             print(f"Error: Cannot convert to the same game")
             os.system('pause')
@@ -155,7 +154,7 @@ def process_args(args):
             os.system('pause')
             return -1
 
-    if translation.resethact:
+    if translation.has_reset():
         translation.reset = False
         translation.offset = vector_org(args.inpath)
         args.inpath = os.path.dirname(args.inpath)
