@@ -9,23 +9,28 @@ from .structure.version import GAME, GMT_VERSION, GMTProperties
 from .converter import convert, combine, reset_camera, vector_org, Translation, get_basename, get_data
 
 description = """
+GMT Converter v0.5.4
+By SutandoTsukai181
+
 A tool to convert animations between Yakuza games
 Currently supported Games:
-  - Yakuza 0:            y0
-  - Yakuza Kiwami:       yk1
-  - Yakuza Kiwami 2:     yk2
-  - Yakuza 3:            y3
-  - Yakuza 4:            y4
-  - Yakuza 5:            y5
-  - Yakuza 6:            y6
-  - Yakuza Kenzan:       yken
-  - Yakuza Ishin:        yish
-  - Yakuza Dead Souls:   yds
-  - FOTNS Lost Paradise: fotns
-  - Judgment:            je
+  - Yakuza 0:             y0
+  - Yakuza Kiwami:        yk1
+  - Yakuza Kiwami 2:      yk2
+  - Yakuza 3:             y3
+  - Yakuza 4:             y4
+  - Yakuza 5:             y5
+  - Yakuza 6:             y6
+  - Yakuza 7:             y7
+  - Yakuza Like A Dragon: ylad (same as y7)
+  - Yakuza Kenzan:        yken
+  - Yakuza Ishin:         yish
+  - Yakuza Dead Souls:    yds
+  - FOTNS Lost Paradise:  fotns
+  - Judgment:             je
 
 Note1: Conversion might not properly work for some specific combinations
-Note2: All Dragon Engine games are the same, so y6 = yk2 = je
+Note2: All Dragon Engine games are the same, so y6 = yk2 = je = y7 = ylad
 
 """
 
@@ -113,7 +118,7 @@ def process_args(args):
     if args.combine:
         return (args, translation)
 
-    if not translation.has_operation() and not translation.has_reset() and not translation.has_speed():
+    if not translation.has_anything():
         if args.ingame == args.outgame:
             print(f"Error: Cannot convert to the same game")
             return -1

@@ -1,30 +1,31 @@
-from typing import List, Union, Tuple
+import math
 from copy import deepcopy
 from os.path import basename
+from typing import List, Union, Tuple
 
 import requests
 from pyquaternion import Quaternion
 
 from .read import read_file
-from .write import write_file
-from .util.dicts import *
-from .util.binary import BinaryReader
-from .util.read_cmt import read_cmt_file
-from .util.write_cmt import write_cmt_file
-from .util.read_gmd import GMDBone, read_gmd_bones, get_face_bones, find_gmd_bone
-from .structure.types.format import CurveFormat, curve_array_to_quat
-from .structure.file import GMTFile
-from .structure.header import GMTHeader
 from .structure.animation import Animation
 from .structure.bone import Bone, find_bone
 from .structure.curve import *
+from .structure.file import GMTFile
 from .structure.graph import *
+from .structure.header import GMTHeader
 from .structure.name import Name
+from .structure.types.format import CurveFormat, curve_array_to_quat
 from .structure.version import *
+from .util.binary import BinaryReader
+from .util.dicts import *
+from .util.read_cmt import read_cmt_file
+from .util.read_gmd import (GMDBone, find_gmd_bone, get_face_bones, read_gmd_bones)
+from .util.write_cmt import write_cmt_file
+from .write import write_file
 
 
 class Translation:
-    def __init__(self, rp: bool, fc: bool, hn: bool, bd: bool, sgmd: str, tgmd: str, rst: bool, rhct: bool, aoff: float, sp: int):
+    def __init__(self, rp: bool, fc: bool, hn: bool, bd: bool, sgmd: str, tgmd: str, rst: bool, rhct: bool, aoff: str, sp: str):
         self.reparent = rp
         self.face = fc
         self.hand = hn
@@ -37,17 +38,10 @@ class Translation:
         self.offset = (0, 0, 0)
         self.add_offset = float(aoff) if aoff else 0.0
 
-        self.speed = 1
-        self.speed_slowmo = False
+        self.speed = sp if sp else "1"
 
-        if sp:
-            if "/" in sp:
-                self.speed = int(sp[2:])
-                self.speed_slowmo = True
-            else:
-                self.speed = int(sp)
-            if self.speed < 1:
-                self.speed = 1
+    def has_anything(self):
+        return self.has_operation() or self.has_reset() or self.has_speed()
 
     def has_operation(self):
         return self.reparent or self.face or self.hand or self.body
@@ -56,7 +50,7 @@ class Translation:
         return self.reset or self.resethact
 
     def has_speed(self):
-        return self.speed != 1
+        return self.speed != "1"
 
 
 def get_data(gmt: Union[str, Tuple[str, bytes]]):
@@ -110,12 +104,13 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
                             if c.curve_format in SCALED_TO_FLOAT:
                                 c.curve_format = SCALED_TO_FLOAT[c.curve_format]
 
-    if dst_gmt.new_bones:
-        # rename to new
-        for anm in in_file.animations:
-            for bone in anm.bones:
-                bone.name.update(NEW_BONES.get(
-                    bone.name.string(), bone.name.string()))
+    if src_gmt < dst_gmt:
+        if (not src_gmt.new_bones) and dst_gmt.new_bones:
+            # rename to new
+            for anm in in_file.animations:
+                for bone in anm.bones:
+                    bone.name.update(NEW_BONES.get(
+                        bone.name.string(), bone.name.string()))
         if dst_gmt.is_dragon_engine:
             # rename to de
             for anm in in_file.animations:
@@ -129,12 +124,16 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
                 anm.bones = add_scale_bone(anm.bones, anm.graphs)
         """
     else:
-        for anm in in_file.animations:
-            for bone in anm.bones:
-                bone.name.update(OLD_BONES.get(
-                    bone.name.string(), bone.name.string()))
-                bone.name.update(DE_OLD_BONES.get(
-                    bone.name.string(), bone.name.string()))
+        if src_gmt.is_dragon_engine:
+            for anm in in_file.animations:
+                for bone in anm.bones:
+                    bone.name.update(DE_OLD_BONES.get(
+                        bone.name.string(), bone.name.string()))
+        if (not dst_gmt.new_bones) and src_gmt.new_bones:
+            for anm in in_file.animations:
+                for bone in anm.bones:
+                    bone.name.update(OLD_BONES.get(
+                        bone.name.string(), bone.name.string()))
 
     if translation.reset:
         for anm in in_file.animations:
@@ -184,12 +183,11 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
             return -1
         for anm in in_file.animations:
             anm.bones = transform_bones(
-                anm.bones, dst_gmt.new_bones, dst_gmt.is_dragon_engine, translation)
+                anm.bones, src_gmt, dst_gmt, translation)
 
-    if translation.speed != 1:
+    if translation.speed != "1":
         for anm in in_file.animations:
-            anm.bones = change_speed(
-                anm.bones, translation.speed, translation.speed_slowmo)
+            anm.bones = change_speed(anm.bones, translation.speed)
 
     """
     for b in in_file.animations[0].bones:
@@ -290,7 +288,7 @@ def de_to_old_kosi(bones: List[Bone]) -> List[Bone]:
     for ke, ko in zip(ketu.rotation_curves(), kosi.rotation_curves()):
         i = 0
         ko.neutralize()
-        ko.curve_format = FLOAT_TO_SCALED.get(ko.curve_format, ko.curve_format)
+        ko.curve_format = SCALED_TO_FLOAT.get(ko.curve_format, ko.curve_format)
         for f in ko.graph.keyframes:
             kf = f
             if kf not in ke.graph.keyframes:
@@ -396,6 +394,7 @@ def finger_pos(bones: List[Bone], gmd_path=None) -> List[Bone]:
     return bones
 
 
+# FIXME: This has not been updated. Fixes needed.
 def new_to_old_bones(bones: List[Bone], src_de, dst_new, motion, gmd_path) -> List[Bone]:
 
     center_bone = find_bone('center', bones)
@@ -506,27 +505,13 @@ def translate_face_bones(anm_bones: List[Bone], source, target):
     return anm_bones
 
 
-def transform_bones(anm_bones: List[Bone], new_bones, is_de, translation):
+def transform_bones(anm_bones: List[Bone], src_props, dst_props, translation):
     source_gmd = read_gmd_bones(get_data(translation.sourcegmd))
     target_gmd = read_gmd_bones(get_data(translation.targetgmd))
     # TODO: now loop over all bones to check for their children
     # if you find a common child (after the gmt rename, be sure to update the names),
     # reparent its positions and rotations like you did with ketu and kosi
     # then accordingly, reparent its children too etc
-
-    def rename_bone(bone):
-        if new_bones:
-            bone.name = NEW_BONES.get(bone.name, bone.name)
-            if is_de:
-                bone.name = DE_BONES.get(bone.name, bone.name)
-        else:
-            bone.name = OLD_BONES.get(bone.name, bone.name)
-            if is_de:
-                bone.name = DE_OLD_BONES.get(bone.name, bone.name)
-        return bone
-
-    source_gmd = list(map(lambda b: rename_bone(b), source_gmd))
-    #target_gmd = list(map(lambda b: rename_bone(b), target_gmd))
 
     if translation.reparent:
         """
@@ -677,11 +662,11 @@ def transform_bones(anm_bones: List[Bone], new_bones, is_de, translation):
             pos_curve.values = list(map(lambda f:
                                         [f[0] + s_pos[0] + t_pos[0],
                                          f[1] + s_pos[1] + t_pos[1],
-                                            f[2] + s_pos[2] + t_pos[2]], pos_curve.values))
+                                         f[2] + s_pos[2] + t_pos[2]], pos_curve.values))
 
             anm_bones[gmt_index].curves[0] = deepcopy(pos_curve)
 
-        if 'face' in start and is_de:
+        if 'face' in start and src_props < dst_props and dst_props.is_dragon_engine:
             for side_name in ['_lip_side_r_n', '_lip_side_l_n']:
                 side_gmt = Bone()
                 side_gmt.name = Name(side_name)
@@ -719,7 +704,7 @@ def transform_bones(anm_bones: List[Bone], new_bones, is_de, translation):
                 anm_bones.append(side_gmt)
 
     if translation.face:
-        if new_bones:
+        if dst_props.new_bones:
             translate('face_c_n')
         else:
             translate('face')
@@ -729,7 +714,7 @@ def transform_bones(anm_bones: List[Bone], new_bones, is_de, translation):
         translate('ude3_l_n')
 
     if translation.body:
-        if new_bones:
+        if dst_props.new_bones:
             translate('center_c_n', ['face_c_n', 'ude3_r_n', 'ude3_l_n'])
         else:
             translate('center', ['face', 'ude3_r_n', 'ude3_l_n'])
@@ -738,7 +723,6 @@ def transform_bones(anm_bones: List[Bone], new_bones, is_de, translation):
 
 
 def combine(paths, ext):
-
     # TODO: make an indices list
     files = []
     i = 0
@@ -825,22 +809,33 @@ def reset_camera(path, offset, add_offset, is_de):
     return write_cmt_file(cmt, cmt.header.version)
 
 
-def change_speed(bones, speed, slowmo):
-    if not slowmo:
+def change_speed(bones, speed: str):
+    speed_mul = 1
+    speed_div = 1
+
+    if '/' in speed:
+        speed_mul, speed_div = [int(x) for x in speed.split('/', 2)]
+    else:
+        speed_mul = int(speed)
+
+    # Make sure the factors are relatively prime
+    divisor = math.gcd(speed_mul, speed_div)
+    speed_mul //= divisor
+    speed_div //= divisor
+
+    if speed_div != 1:
+        for bone in bones:
+            for curve in bone.curves:
+                curve.graph.keyframes = list(map(lambda x: x * speed_div, curve.graph.keyframes))
+
+    if speed_mul != 1:
         for bone in bones:
             for curve in bone.curves:
                 if len(curve.values) > 1:
                     last_value = curve.values[-1]
                     last_key = curve.graph.keyframes[-1]
-                    curve.values = curve.values[:-1][::speed] + [last_value]
-                    curve.graph.keyframes = curve.graph.keyframes[:-1][::speed] + [
-                        last_key]
-                    curve.graph.keyframes = list(
-                        map(lambda x: x // speed, curve.graph.keyframes))
-    else:
-        for bone in bones:
-            for curve in bone.curves:
-                curve.graph.keyframes = list(
-                    map(lambda x: x * speed, curve.graph.keyframes))
+                    curve.values = curve.values[:-1][::speed_mul] + [last_value]
+                    curve.graph.keyframes = curve.graph.keyframes[:-1][::speed_mul] + [last_key]
+                    curve.graph.keyframes = list(map(lambda x: x // speed_mul, curve.graph.keyframes))
 
     return bones

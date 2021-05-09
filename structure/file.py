@@ -35,9 +35,10 @@ class GMTFile:
                     a.graphs.append(c.graph)
             a.graph_count = len(a.graphs)
 
+            # Turned out to be last frame, not frame count
             frame_count = 0
             for g in a.graphs:
-                frame_count = max(frame_count, len(g.keyframes))
+                frame_count = max(frame_count, g.keyframes[-1])
             a.frame_count = frame_count
 
     def __update_bones(self):
