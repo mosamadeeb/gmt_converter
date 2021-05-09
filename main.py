@@ -10,21 +10,23 @@ description = """
 GMT Converter v0.5.3
 A tool to convert animations between Yakuza games
 Currently supported Games:
-  - Yakuza 0:            y0
-  - Yakuza Kiwami:       yk1
-  - Yakuza Kiwami 2:     yk2
-  - Yakuza 3:            y3
-  - Yakuza 4:            y4
-  - Yakuza 5:            y5
-  - Yakuza 6:            y6
-  - Yakuza Kenzan:       yken
-  - Yakuza Ishin:        yish
-  - Yakuza Dead Souls:   yds
-  - FOTNS Lost Paradise: fotns
-  - Judgment:            je
+  - Yakuza 0:             y0
+  - Yakuza Kiwami:        yk1
+  - Yakuza Kiwami 2:      yk2
+  - Yakuza 3:             y3
+  - Yakuza 4:             y4
+  - Yakuza 5:             y5
+  - Yakuza 6:             y6
+  - Yakuza 7:             y7
+  - Yakuza Like A Dragon: ylad (same as y7)
+  - Yakuza Kenzan:        yken
+  - Yakuza Ishin:         yish
+  - Yakuza Dead Souls:    yds
+  - FOTNS Lost Paradise:  fotns
+  - Judgment:             je
 
 Note1: Conversion might not properly work for some specific combinations
-Note2: All Dragon Engine games are the same, so y6 = yk2 = je
+Note2: All Dragon Engine games are the same, so y6 = yk2 = je = y7 = ylad
 
 """
 

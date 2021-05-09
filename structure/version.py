@@ -2,18 +2,20 @@ from enum import Enum, auto
 
 # Used for translating arguments to game names
 GAME = {
-    'y0': 'YAKUZA_0',
-    'yk1': 'YAKUZA_K',
-    'yk2': 'YAKUZA_K2',
-    'y3': 'YAKUZA_3',
-    'y4': 'YAKUZA_4',
-    'y5': 'YAKUZA_5',
-    'y6': 'YAKUZA_6',
-    'yken': 'KENZAN',
-    'yish': 'ISHIN',
-    'yds': 'DEAD_SOULS',
+    'y0':    'YAKUZA_0',
+    'yk1':   'YAKUZA_K',
+    'yk2':   'YAKUZA_K2',
+    'y3':    'YAKUZA_3',
+    'y4':    'YAKUZA_4',
+    'y5':    'YAKUZA_5',
+    'y6':    'YAKUZA_6',
+    'y7':    'YAKUZA_7',
+    'ylad':  'YAKUZA_LAD',
+    'yken':  'KENZAN',
+    'yish':  'ISHIN',
+    'yds':   'DEAD_SOULS',
     'fotns': 'FOTNS',
-    'je': 'JUDGMENT'
+    'je':    'JUDGMENT',
 }
 
 # [version, new_bones, is_dragon_engine]
@@ -27,9 +29,11 @@ GMT_VERSION = {
     'YAKUZA_0':   [0X20002, True, False],
     'YAKUZA_K':   [0X20002, True, False],
     'YAKUZA_6':   [0X20002, True, True],
+    'YAKUZA_7':   [0X20002, True, True],
+    'YAKUZA_LAD': [0X20002, True, True],
     'YAKUZA_K2':  [0X20002, True, True],
     'FOTNS':      [0X20002, True, False],
-    'JUDGMENT':   [0X20002, True, True]
+    'JUDGMENT':   [0X20002, True, True],
 }
 
 
