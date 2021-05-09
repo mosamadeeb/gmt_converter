@@ -7,7 +7,9 @@ from structure.version import GAME, GMT_VERSION, GMTProperties
 from converter import convert, combine, reset_camera, vector_org, Translation
 
 description = """
-GMT Converter v0.5.3
+GMT Converter v0.5.4
+By SutandoTsukai181
+
 A tool to convert animations between Yakuza games
 Currently supported Games:
   - Yakuza 0:             y0
