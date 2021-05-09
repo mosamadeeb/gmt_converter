@@ -1,28 +1,30 @@
-from typing import List
+import math
 from copy import deepcopy
 from os.path import basename
+from typing import List
+
 from pyquaternion import Quaternion
 
 from read import read_file
-from write import write_file
-from util.dicts import *
-from util.binary import BinaryReader
-from util.read_cmt import read_cmt_file
-from util.write_cmt import write_cmt_file
-from util.read_gmd import GMDBone, read_gmd_bones, get_face_bones, find_gmd_bone
-from structure.types.format import CurveFormat, curve_array_to_quat
-from structure.file import GMTFile
-from structure.header import GMTHeader
 from structure.animation import Animation
 from structure.bone import Bone, find_bone
 from structure.curve import *
+from structure.file import GMTFile
 from structure.graph import *
+from structure.header import GMTHeader
 from structure.name import Name
+from structure.types.format import CurveFormat, curve_array_to_quat
 from structure.version import *
+from util.binary import BinaryReader
+from util.dicts import *
+from util.read_cmt import read_cmt_file
+from util.read_gmd import (GMDBone, find_gmd_bone, get_face_bones, read_gmd_bones)
+from util.write_cmt import write_cmt_file
+from write import write_file
 
 
 class Translation:
-    def __init__(self, rp: bool, fc: bool, hn: bool, bd: bool, sgmd: str, tgmd: str, rst: bool, rhct: bool, aoff: float, sp: int):
+    def __init__(self, rp: bool, fc: bool, hn: bool, bd: bool, sgmd: str, tgmd: str, rst: bool, rhct: bool, aoff: str, sp: str):
         self.reparent = rp
         self.face = fc
         self.hand = hn
@@ -35,17 +37,7 @@ class Translation:
         self.offset = (0, 0, 0)
         self.add_offset = float(aoff) if aoff else 0.0
 
-        self.speed = 1
-        self.speed_slowmo = False
-
-        if sp:
-            if "/" in sp:
-                self.speed = int(sp[2:])
-                self.speed_slowmo = True
-            else:
-                self.speed = int(sp)
-            if self.speed < 1:
-                self.speed = 1
+        self.speed = sp if sp else "1"
 
     def has_anything(self):
         return self.has_operation() or self.has_reset() or self.has_speed()
@@ -57,7 +49,7 @@ class Translation:
         return self.reset or self.resethact
 
     def has_speed(self):
-        return self.speed != 1
+        return self.speed != "1"
 
 # returns converted file as bytearray
 
@@ -181,10 +173,9 @@ def convert(path, src_game, dst_game, motion, translation) -> bytearray:
             anm.bones = transform_bones(
                 anm.bones, src_gmt, dst_gmt, translation)
 
-    if translation.speed != 1:
+    if translation.speed != "1":
         for anm in in_file.animations:
-            anm.bones = change_speed(
-                anm.bones, translation.speed, translation.speed_slowmo)
+            anm.bones = change_speed(anm.bones, translation.speed)
 
     """
     for b in in_file.animations[0].bones:
@@ -809,22 +800,33 @@ def reset_camera(path, offset, add_offset, is_de):
     return write_cmt_file(cmt, cmt.header.version)
 
 
-def change_speed(bones, speed, slowmo):
-    if not slowmo:
+def change_speed(bones, speed: str):
+    speed_mul = 1
+    speed_div = 1
+
+    if '/' in speed:
+        speed_mul, speed_div = [int(x) for x in speed.split('/', 2)]
+    else:
+        speed_mul = int(speed)
+
+    # Make sure the factors are relatively prime
+    divisor = math.gcd(speed_mul, speed_div)
+    speed_mul //= divisor
+    speed_div //= divisor
+
+    if speed_div != 1:
+        for bone in bones:
+            for curve in bone.curves:
+                curve.graph.keyframes = list(map(lambda x: x * speed_div, curve.graph.keyframes))
+
+    if speed_mul != 1:
         for bone in bones:
             for curve in bone.curves:
                 if len(curve.values) > 1:
                     last_value = curve.values[-1]
                     last_key = curve.graph.keyframes[-1]
-                    curve.values = curve.values[:-1][::speed] + [last_value]
-                    curve.graph.keyframes = curve.graph.keyframes[:-1][::speed] + [
-                        last_key]
-                    curve.graph.keyframes = list(
-                        map(lambda x: x // speed, curve.graph.keyframes))
-    else:
-        for bone in bones:
-            for curve in bone.curves:
-                curve.graph.keyframes = list(
-                    map(lambda x: x * speed, curve.graph.keyframes))
+                    curve.values = curve.values[:-1][::speed_mul] + [last_value]
+                    curve.graph.keyframes = curve.graph.keyframes[:-1][::speed_mul] + [last_key]
+                    curve.graph.keyframes = list(map(lambda x: x // speed_mul, curve.graph.keyframes))
 
     return bones
