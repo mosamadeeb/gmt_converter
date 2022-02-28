@@ -410,6 +410,10 @@ def new_to_old_bones(bones: List[Bone], src_de, dst_new, motion, gmd_path) -> Li
     sync, _ = find_bone('sync_c_n', bones)
     if sync:
         bones.remove(sync)
+        
+    scale, _ = find_bone('scale', bones)
+    if scale:
+        bones.remove(scale)
 
     return bones
 
